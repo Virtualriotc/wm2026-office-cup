@@ -156,9 +156,17 @@ const PLACEHOLDER_PATTERNS: RegExp[] = [
   /^L\d+$/i, //                       loser-of-match: "L101"
   /^R\d+/i, //                        round-ref placeholders: "R1A" (defensive)
   /^W-?Group\b/i, //                  "W-Group A" / "WGroup A" (defensive)
-  /^Winner\b/i, //                    "Winner Group A", "Winner Match 73" (defensive)
-  /^Runner-?up\b/i, //                "Runner-up Group B" (defensive)
-  /^Loser\b/i, //                     "Loser Match 101" (defensive)
+  /^Group\b/i, //                     ESPN bracket descriptors: "Group A 2nd Place", "Group C Winner"
+  // ESPN-style bracket descriptors appear ANYWHERE in the label, not just at the
+  // start, so these match as substrings (case-insensitive). They are the
+  // PRE-TOURNAMENT slot labels ESPN serves ("Group A 2nd Place", "Group C
+  // Winner", "Third Place Group A/B/C/D/F", "Runner-up Group B") — NOT real teams.
+  /\bWinner\b/i, //                   "Winner Group A", "Group C Winner", "Winner Match 73"
+  /\bRunner[\s-]?up\b/i, //           "Runner-up Group B", "Runner Up Group B"
+  /\bLoser\b/i, //                    "Loser Match 101"
+  /\b2nd Place\b/i, //                "Group A 2nd Place"
+  /\bThird Place\b/i, //              "Third Place Group A/B/C/D/F"
+  /\bTBD\b/i, //                      "TBD" — slot not yet decided
 ];
 
 /**

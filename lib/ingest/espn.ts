@@ -460,6 +460,15 @@ export function matchEspnKoTeams(
   for (const r of results) {
     const stage = espnSlugToStage(r.seasonSlug);
     if (!stage) continue;
+    // REJECT any candidate whose home/away is NOT a real team. Before the bracket
+    // fills, ESPN serves POSITION DESCRIPTORS ("Group A 2nd Place", "Group C
+    // Winner", "Third Place Group A/B/C/D/F") as the team labels — these are NOT
+    // teams. We must never write a descriptor over a placeholder slot (it would
+    // look like a real opponent AND block later resolution to the real team). So
+    // we only forward an event when BOTH sides pass isPlaceholderTeam === false;
+    // resolveKoTeamsByStructure re-checks defensively. Pre-tournament this drops
+    // every KO event, so we resolve NOTHING until real teams actually qualify.
+    if (isPlaceholderTeam(r.homeName) || isPlaceholderTeam(r.awayName)) continue;
     events.push({ stage, kickoff: r.dateUtc, home: r.homeName, away: r.awayName });
   }
   return resolveKoTeamsByStructure(events, koMatches);

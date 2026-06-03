@@ -91,6 +91,46 @@ describe("isPlaceholderTeam — real openfootball KO shapes", () => {
       expect(isPlaceholderTeam(t), t).toBe(false);
     }
   });
+
+  it("flags ESPN-style PRE-TOURNAMENT bracket descriptors as non-teams", () => {
+    // The LIVE bug: ESPN serves these POSITION DESCRIPTORS (not real teams) on
+    // KO slots before the bracket fills. isPlaceholderTeam MUST reject them so
+    // (a) the KO stays hidden and (b) the resolver re-attempts once teams qualify.
+    for (const d of [
+      "Group A 2nd Place",
+      "Group C Winner",
+      "Group F Winner",
+      "Third Place Group A/B/C/D/F",
+      "TBD",
+      "Runner-up Group B",
+      "Runner Up Group B",
+      "Winner Group A",
+      "Loser Match 101",
+      "Group B 2nd Place",
+    ]) {
+      expect(isPlaceholderTeam(d), d).toBe(true);
+    }
+  });
+
+  it("does NOT flag any REAL seed team even after the descriptor extension", () => {
+    // The full real slate plus the alias spellings the matcher may see — none of
+    // these may collide with a descriptor keyword (Group/Winner/Loser/Place/TBD).
+    const realTeams = [
+      "Mexico", "Germany", "Brazil", "Wales", "Curaçao", "Côte d'Ivoire",
+      "USA", "Türkiye", "South Korea", "Czech Republic", "Ivory Coast",
+      "Turkey", "Bosnia & Herzegovina", "Cape Verde", "South Africa",
+      "Saudi Arabia", "New Zealand", "DR Congo", "Uzbekistan",
+    ];
+    for (const t of realTeams) {
+      expect(isPlaceholderTeam(t), t).toBe(false);
+    }
+    // And every real group-stage team currently in the seed.
+    for (const m of SEED_MATCHES) {
+      if (m.stage !== "group") continue;
+      expect(isPlaceholderTeam(m.home), m.home).toBe(false);
+      expect(isPlaceholderTeam(m.away), m.away).toBe(false);
+    }
+  });
 });
 
 describe("hasKnownTeams", () => {

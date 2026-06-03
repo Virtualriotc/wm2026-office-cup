@@ -11,6 +11,29 @@ const nextConfig: NextConfig = {
   // proof tour). Allowlisting the loopback host quiets that path. Dev-only; it
   // has no effect on the production build.
   allowedDevOrigins: ["127.0.0.1", "localhost"],
+  // Drop the framework fingerprint header (x-powered-by: Next.js).
+  poweredByHeader: false,
+  // Baseline security headers on EVERY route. Deliberately conservative: no
+  // restrictive script/style CSP that could break the app — only a
+  // frame-ancestors directive (clickjacking) alongside X-Frame-Options, plus
+  // MIME-sniffing, referrer, and permissions hardening.
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=()",
+          },
+          { key: "Content-Security-Policy", value: "frame-ancestors 'none'" },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

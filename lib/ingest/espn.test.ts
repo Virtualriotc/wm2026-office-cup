@@ -18,10 +18,30 @@ import {
   parseEspnScoreboard,
   matchEspnToSeed,
   matchEspnResults,
+  matchEspnKoTeams,
   normalizeTeamName,
   type EspnResult,
 } from "./espn";
 import { SEED_MATCHES } from "../seed";
+
+/** Build a minimal KO EspnResult on the given day with the given team labels. */
+function koEvent(
+  dateUtc: string,
+  homeName: string,
+  awayName: string,
+): EspnResult {
+  return {
+    dateUtc,
+    homeName,
+    awayName,
+    homeAbbr: null,
+    awayAbbr: null,
+    completed: false,
+    outcome: null,
+    detail: null,
+    seasonSlug: "round-of-32",
+  };
+}
 
 import scheduled2026 from "./__fixtures__/espn-scoreboard-20260611.json";
 import finished2022 from "./__fixtures__/espn-scoreboard-20221122.json";
@@ -169,6 +189,40 @@ describe("matchEspnToSeed — maps real ESPN events to seeded matches", () => {
       seasonSlug: "round-of-32",
     };
     expect(matchEspnToSeed(koEvent, SEED_MATCHES)).toBeNull();
+  });
+});
+
+describe("matchEspnKoTeams — never resolves a slot to an ESPN descriptor", () => {
+  // Use the FIRST real R32 slot from the seed so the structural (day, stage,
+  // order) matcher has a real placeholder slot to line up against.
+  const r32 = SEED_MATCHES.filter((m) => m.stage === "r32").sort((a, b) =>
+    a.kickoff.localeCompare(b.kickoff),
+  )[0]!;
+
+  it("resolves NOTHING when ESPN serves PRE-TOURNAMENT position descriptors", () => {
+    // The LIVE bug: pre-tournament ESPN shows the bracket as descriptors, not
+    // teams. The resolver must reject every one and fill no slot.
+    for (const [home, away] of [
+      ["Group A 2nd Place", "Group C Winner"],
+      ["Third Place Group A/B/C/D/F", "Group F Winner"],
+      ["Runner-up Group B", "TBD"],
+      ["Winner Group A", "Group B 2nd Place"],
+    ] as const) {
+      const ev = koEvent(r32.kickoff, home, away);
+      expect(matchEspnKoTeams([ev], [r32]), `${home} vs ${away}`).toEqual([]);
+    }
+  });
+
+  it("resolves the slot when ESPN serves TWO REAL teams", () => {
+    const ev = koEvent(r32.kickoff, "Argentina", "Croatia");
+    expect(matchEspnKoTeams([ev], [r32])).toEqual([
+      { matchId: r32.id, home: "Argentina", away: "Croatia" },
+    ]);
+  });
+
+  it("resolves NOTHING when only ONE side is a descriptor (need BOTH real)", () => {
+    const ev = koEvent(r32.kickoff, "Argentina", "Group C Winner");
+    expect(matchEspnKoTeams([ev], [r32])).toEqual([]);
   });
 });
 

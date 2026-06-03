@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>WM 2026 Office Cup — Department Race</title>
+<style>
+  :root{
+    --paper:#f3f1ea;        /* off-white canvas */
+    --paper-2:#eae7dd;
+    --ink:#14130f;          /* near-black */
+    --ink-60:rgba(20,19,15,.6);
+    --ink-35:rgba(20,19,15,.35);
+    --ink-14:rgba(20,19,15,.14);
+    --ink-08:rgba(20,19,15,.08);
+    --accent:#ec3a1e;       /* the one confident accent — warm vermillion */
+    --accent-soft:rgba(236,58,30,.12);
+    --line:rgba(20,19,15,.16);
+    --ease:cubic-bezier(.16,1,.3,1);          /* expo-out, calm */
+    --ease-soft:cubic-bezier(.33,1,.68,1);
+    --max:1320px;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:"Helvetica Neue",Helvetica,"Inter","Segoe UI",system-ui,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+    line-height:1.4;
+  }
+  /* faint baseline grain so the negative space breathes */
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+    background-image:radial-gradient(var(--ink) .6px,transparent .7px);
+    background-size:26px 26px;opacity:.035;
+  }
+  .wrap{max-width:var(--max);margin:0 auto;padding:0 56px;position:relative;z-index:1;}
+  .mono{font-family:"SF Mono",ui-monospace,"Roboto Mono",Menlo,Consolas,monospace;}
+  .eyebrow{
+    font-family:"SF Mono",ui-monospace,Menlo,monospace;
+    font-size:12px;letter-spacing:.34em;text-transform:uppercase;color:var(--ink-60);
+  }
+  .accent{color:var(--accent);}
+
+  /* ───────────────────────── TOP BAR ───────────────────────── */
+  .topbar{
+    position:fixed;top:0;left:0;right:0;z-index:30;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:22px 56px;
+    backdrop-filter:saturate(120%) blur(2px);
+    transition:background .5s var(--ease),border-color .5s var(--ease);
+    border-bottom:1px solid transparent;
+  }
+  .topbar.solid{background:rgba(243,241,234,.82);border-bottom:1px solid var(--line);}
+  .brandmark{display:flex;align-items:center;gap:12px;font-weight:700;letter-spacing:.02em;font-size:14px;}
+  .brandmark .dot{width:9px;height:9px;border-radius:50%;background:var(--accent);}
+  .topnav{display:flex;gap:34px;font-size:13px;color:var(--ink-60);letter-spacing:.02em;}
+  .topnav a{color:inherit;text-decoration:none;position:relative;transition:color .3s var(--ease);}
+  .topnav a::after{content:"";position:absolute;left:0;right:100%;bottom:-5px;height:1px;background:var(--ink);transition:right .35s var(--ease);}
+  .topnav a:hover{color:var(--ink);}
+  .topnav a:hover::after{right:0;}
+
+  /* ───────────────────────── HERO ───────────────────────── */
+  .hero{
+    min-height:100vh;display:flex;flex-direction:column;justify-content:center;
+    padding-top:90px;padding-bottom:48px;position:relative;
+  }
+  .hero-grid{
+    position:absolute;inset:0;pointer-events:none;z-index:0;
+    background-image:
+      linear-gradient(to right,var(--ink-08) 1px,transparent 1px);
+    background-size:calc((100% - 0px)/12) 100%;
+    opacity:.5;mask-image:linear-gradient(to bottom,transparent,#000 22%,#000 78%,transparent);
+    -webkit-mask-image:linear-gradient(to bottom,transparent,#000 22%,#000 78%,transparent);
+  }
+  .hero-top{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;margin-bottom:30px;}
+  .hero-top .meta{text-align:right;line-height:1.7;}
+  .hero-top .meta .big{font-size:14px;color:var(--ink);font-weight:600;letter-spacing:0;}
+
+  /* HUGE kinetic clipped title */
+  .title{margin:0;font-weight:800;letter-spacing:-.035em;line-height:.84;text-transform:uppercase;}
+  .title .row{display:block;overflow:hidden;}
+  .title .row span{
+    display:inline-block;
+    transform:translateY(110%);
+    transition:transform 1s var(--ease);
+  }
+  .title .l1{font-size:clamp(64px,9.4vw,150px);}
+  .title .l2{font-size:clamp(64px,9.4vw,150px);}
+  .title .l3{font-size:clamp(64px,9.4vw,150px);color:var(--accent);}
+  /* staggered reveal — pure transform */
+  .loaded .title .r1 span{transition-delay:.05s;transform:translateY(0);}
+  .loaded .title .r2 span{transition-delay:.16s;transform:translateY(0);}
+  .loaded .title .r3 span{transition-delay:.27s;transform:translateY(0);}
+
+  .title .ball-inline{
+    display:inline-block;width:.78em;height:.78em;vertical-align:-.06em;margin-left:.12em;
+    will-change:transform;animation:spin 9s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  .hero-foot{
+    display:flex;justify-content:space-between;align-items:flex-end;gap:40px;
+    margin-top:54px;
+    opacity:0;transform:translateY(18px);
+    transition:opacity .9s var(--ease) .5s,transform .9s var(--ease) .5s;
+  }
+  .loaded .hero-foot{opacity:1;transform:none;}
+  .hero-lede{max-width:430px;font-size:17px;line-height:1.55;color:var(--ink);}
+  .hero-lede b{color:var(--accent);font-weight:600;}
+
+  .cta-col{display:flex;flex-direction:column;align-items:flex-start;gap:16px;}
+  .cta{
+    appearance:none;border:none;cursor:pointer;font-family:inherit;
+    background:var(--ink);color:var(--paper);
+    font-size:15px;font-weight:600;letter-spacing:.02em;
+    padding:18px 30px;border-radius:48px;
+    display:inline-flex;align-items:center;gap:14px;
+    position:relative;overflow:hidden;isolation:isolate;
+    transition:transform .4s var(--ease),color .4s var(--ease);
+  }
+  .cta::before{
+    content:"";position:absolute;inset:0;z-index:-1;background:var(--accent);
+    transform:translateY(101%);transition:transform .5s var(--ease);
+  }
+  .cta:hover{transform:translateY(-2px);}
+  .cta:hover::before{transform:translateY(0);}
+  .cta:focus-visible{outline:2px solid var(--accent);outline-offset:4px;}
+  .cta .arrow{display:inline-block;transition:transform .45s var(--ease);}
+  .cta:hover .arrow{transform:translateX(6px);}
+  .disclaimer{font-size:11.5px;color:var(--ink-35);max-width:300px;line-height:1.5;}
+
+  /* scroll cue */
+  .scrollcue{
+    position:absolute;left:56px;bottom:30px;display:flex;align-items:center;gap:14px;
+    font-family:"SF Mono",monospace;font-size:11px;letter-spacing:.24em;color:var(--ink-35);text-transform:uppercase;
+    opacity:0;transition:opacity 1s var(--ease) 1s;
+  }
+  .loaded .scrollcue{opacity:1;}
+  .scrollcue .bar{width:1px;height:42px;background:var(--ink-14);overflow:hidden;position:relative;}
+  .scrollcue .bar::after{content:"";position:absolute;left:0;right:0;top:0;height:60%;background:var(--accent);will-change:transform;animation:cue 2.4s var(--ease-soft) infinite;}
+  @keyframes cue{0%{transform:translateY(-100%);}60%,100%{transform:translateY(167%);}}
+
+  /* ───────────────────────── SECTION SCAFFOLD ───────────────────────── */
+  section.block{padding:120px 0;position:relative;}
+  .sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:30px;margin-bottom:14px;}
+  .sec-index{font-family:"SF Mono",monospace;font-size:12px;color:var(--accent);letter-spacing:.2em;}
+  .sec-title{
+    font-size:clamp(34px,4.6vw,62px);font-weight:800;letter-spacing:-.03em;line-height:.96;margin:6px 0 0;text-transform:uppercase;
+  }
+  .sec-sub{font-size:15px;color:var(--ink-60);max-width:440px;line-height:1.55;margin-top:18px;}
+  .reveal{opacity:0;transform:translateY(26px);transition:opacity .9s var(--ease),transform .9s var(--ease);}
+  .reveal.in{opacity:1;transform:none;}
+
+  /* ───────────────────────── THE RACE ───────────────────────── */
+  .race-shell{position:relative;border-top:1px solid var(--ink);padding-top:40px;}
+  .race-top{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:44px;}
+  .matchday-chip{
+    font-family:"SF Mono",monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;
+    border:1px solid var(--ink);border-radius:30px;padding:8px 16px;color:var(--ink);
+  }
+
+  /* mover callout */
+  .mover{
+    display:inline-flex;align-items:center;gap:16px;
+    background:var(--ink);color:var(--paper);border-radius:18px;padding:16px 22px 16px 18px;
+    opacity:0;transform:scale(.94);transition:opacity .7s var(--ease),transform .7s var(--ease);
+    position:relative;overflow:hidden;
+  }
+  .mover.show{opacity:1;transform:none;}
+  .mover .glyph{
+    width:42px;height:42px;border-radius:50%;background:var(--accent);
+    display:flex;align-items:center;justify-content:center;font-size:20px;flex:0 0 auto;
+  }
+  .mover .mtxt small{display:block;font-family:"SF Mono",monospace;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:rgba(243,241,234,.55);margin-bottom:3px;}
+  .mover .mtxt b{font-size:17px;font-weight:700;letter-spacing:-.01em;display:block;max-width:340px;line-height:1.2;}
+  .mover .mdelta{font-family:"SF Mono",monospace;font-size:15px;color:var(--accent);font-weight:600;margin-left:6px;}
+
+  /* the abstract track: a clean horizontal axis, travelling dots */
+  .track{
+    position:relative;margin-top:8px;
+    padding:18px 0 8px;
+  }
+  .axis{
+    position:relative;height:1px;background:var(--line);margin:0 0 8px;
+  }
+  .gridlines{position:absolute;inset:0;pointer-events:none;}
+  .gridlines span{position:absolute;top:0;bottom:0;width:1px;background:var(--ink-08);}
+  .endcaps{position:relative;height:0;}
+  .cap{
+    position:absolute;top:-26px;font-family:"SF Mono",monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-35);
+  }
+  .cap.start{left:0;}
+  .cap.finish{right:0;color:var(--accent);text-align:right;}
+  .finish-line{position:absolute;top:0;bottom:0;right:0;width:2px;background:var(--accent);opacity:.5;}
+
+  .lanes{position:relative;}
+  .lane{
+    position:relative;height:62px;display:flex;align-items:center;
+    border-bottom:1px solid var(--ink-08);
+  }
+  .lane:last-child{border-bottom:none;}
+  /* the head-to-head band: two runners share ONE axis, so a node truly passes another */
+  .lane.duel{height:96px;background:var(--accent-soft);border-radius:14px;border-bottom:none;margin:6px 0;}
+  .lane.duel::before{
+    content:"Head to head";position:absolute;left:14px;top:9px;
+    font-family:"SF Mono",monospace;font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);
+  }
+  .lane .lane-label{
+    position:absolute;left:0;top:50%;transform:translateY(-50%);
+    font-family:"SF Mono",monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-35);
+    width:96px;
+  }
+  .lane .ghost-line{
+    position:absolute;left:110px;right:0;top:50%;height:1px;background:var(--ink-08);
+  }
+  .lane.duel .ghost-line{background:var(--ink-14);}
+  /* the runner = a token + a name + a value + a dot, the whole unit travels via transform */
+  .runner{
+    position:absolute;left:110px;top:50%;
+    transform:translate(0,-50%);
+    will-change:transform;
+    transition:transform 2.1s var(--ease);
+    display:flex;align-items:center;gap:12px;
+  }
+  /* identity token: a small 2-letter chip tinted per department */
+  .runner .token{
+    font-family:"SF Mono",monospace;font-size:10px;font-weight:700;letter-spacing:.06em;
+    width:24px;height:24px;border-radius:7px;flex:0 0 auto;
+    display:flex;align-items:center;justify-content:center;
+    background:var(--tint,var(--ink));color:var(--paper);
+  }
+  .runner .name{
+    font-size:clamp(20px,2vw,30px);font-weight:700;letter-spacing:-.02em;white-space:nowrap;
+    color:var(--ink);transition:color .4s var(--ease);
+  }
+  .runner .pts{
+    font-family:"SF Mono",monospace;font-size:13px;color:var(--ink-35);
+    transition:color .4s var(--ease);min-width:34px;
+  }
+  .runner .node{
+    width:13px;height:13px;border-radius:50%;background:var(--tint,var(--ink));flex:0 0 auto;
+    position:relative;transition:background .4s var(--ease),transform .4s var(--ease);
+  }
+  .runner.you .name{color:var(--accent);}
+  .runner.you .node{background:var(--accent);}
+  .runner.you .token{background:var(--accent);}
+  .runner.you .pts{color:var(--accent);}
+  /* in the duel band the node is the anchor (on the shared axis); the label floats
+     above (you) or below (the team you pass) so two names never collide while both
+     dots ride the exact same horizontal line and one truly travels past the other */
+  .lane.duel .runner{gap:0;}
+  .lane.duel .runner .node{order:-1;}
+  .lane.duel .runner .label-group{
+    position:absolute;left:22px;top:50%;display:flex;align-items:center;gap:11px;white-space:nowrap;
+  }
+  .lane.duel .runner.you .label-group{transform:translateY(-150%);}
+  .lane.duel .runner:not(.you) .label-group{transform:translateY(50%);}
+  .lane.duel .runner .node{box-shadow:0 0 0 3px var(--paper);} /* ring so overlapping dots stay legible mid-pass */
+  .lane.duel .runner:not(.you){z-index:1;}
+  .lane.duel .runner.you{z-index:2;} /* the overtaker paints on top, so the pass reads as "in front" */
+  /* the leader gets a quiet halo pulse */
+  .runner.leader .node::after{
+    content:"";position:absolute;inset:-6px;border-radius:50%;border:1px solid currentColor;color:var(--accent);
+    opacity:0;animation:halo 2.8s var(--ease-soft) infinite;
+  }
+  @keyframes halo{0%{transform:scale(.6);opacity:.7;}100%{transform:scale(1.8);opacity:0;}}
+  .you-tag{
+    font-family:"SF Mono",monospace;font-size:9.5px;letter-spacing:.18em;
+    border:1px solid var(--accent);color:var(--accent);border-radius:20px;padding:3px 8px;
+  }
+
+  /* the moving trail behind the node (pure opacity/scaleX, optional flourish) */
+  .runner .trail{
+    position:absolute;right:13px;top:50%;transform:translateY(-50%) scaleX(0);transform-origin:right center;
+    height:1px;width:120px;background:linear-gradient(to left,var(--tint,var(--accent)),transparent);
+    opacity:0;
+  }
+  .running .runner .trail{animation:trail 2.1s var(--ease) forwards;}
+  @keyframes trail{0%{transform:translateY(-50%) scaleX(0);opacity:.9;}100%{transform:translateY(-50%) scaleX(1);opacity:0;}}
+
+  .race-actions{display:flex;align-items:center;gap:20px;margin-top:46px;}
+  .ghost-btn{
+    appearance:none;font-family:inherit;cursor:pointer;background:transparent;
+    border:1px solid var(--ink);color:var(--ink);border-radius:40px;padding:13px 24px;
+    font-size:13px;letter-spacing:.02em;display:inline-flex;align-items:center;gap:10px;
+    transition:background .4s var(--ease),color .4s var(--ease);
+  }
+  .ghost-btn:hover{background:var(--ink);color:var(--paper);}
+  .ghost-btn:focus-visible{outline:2px solid var(--accent);outline-offset:3px;}
+  .race-note{font-family:"SF Mono",monospace;font-size:11px;color:var(--ink-35);letter-spacing:.04em;}
+
+  /* confetti layer for the mover pop */
+  .confetti{position:absolute;inset:0;pointer-events:none;overflow:visible;z-index:20;}
+  .conf{position:absolute;width:7px;height:9px;border-radius:1px;opacity:0;will-change:transform,opacity;}
+
+  /* ───────────────────────── CONTENT ZONE (two columns) ───────────────────────── */
+  .duo{display:grid;grid-template-columns:1.05fr .95fr;gap:64px;align-items:start;margin-top:44px;}
+  .panel-head{display:flex;align-items:baseline;justify-content:space-between;border-bottom:1px solid var(--ink);padding-bottom:14px;margin-bottom:8px;}
+  .panel-head h3{margin:0;font-size:13px;letter-spacing:.16em;text-transform:uppercase;font-family:"SF Mono",monospace;}
+  .panel-head .h-meta{font-family:"SF Mono",monospace;font-size:11px;color:var(--ink-35);letter-spacing:.08em;}
+
+  /* PICKS */
+  .match{
+    display:grid;grid-template-columns:54px 1fr auto;align-items:center;gap:18px;
+    padding:20px 4px;border-bottom:1px solid var(--ink-08);
+  }
+  .match .when{font-family:"SF Mono",monospace;font-size:11px;color:var(--ink-35);line-height:1.4;}
+  .teams{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .pickbtn{
+    appearance:none;font-family:inherit;cursor:pointer;background:transparent;
+    border:1px solid var(--line);border-radius:30px;padding:9px 16px;font-size:14px;font-weight:600;
+    color:var(--ink);letter-spacing:0;
+    transition:border-color .3s var(--ease),background .3s var(--ease),color .3s var(--ease),transform .25s var(--ease);
+  }
+  .pickbtn:hover{border-color:var(--ink);transform:translateY(-1px);}
+  .pickbtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .pickbtn.draw{font-size:12px;letter-spacing:.1em;color:var(--ink-60);text-transform:uppercase;padding:9px 13px;}
+  .pickbtn.sel{background:var(--ink);border-color:var(--ink);color:var(--paper);}
+  .pickbtn.sel.draw{background:var(--accent);border-color:var(--accent);color:var(--paper);}
+  .vs{font-family:"SF Mono",monospace;font-size:11px;color:var(--ink-35);}
+  .match .lock{font-family:"SF Mono",monospace;font-size:10.5px;color:var(--ink-35);letter-spacing:.08em;text-align:right;white-space:nowrap;}
+  .match .lock.soon{color:var(--accent);}
+  .picks-foot{display:flex;align-items:center;justify-content:space-between;margin-top:26px;}
+  .picks-progress{font-family:"SF Mono",monospace;font-size:12px;color:var(--ink-60);}
+  .picks-progress b{color:var(--ink);}
+
+  /* LEADERBOARD (relative) */
+  .board-card{background:var(--paper-2);border-radius:20px;padding:30px 30px 26px;}
+  .pct{display:flex;align-items:flex-end;gap:14px;margin-bottom:6px;}
+  .pct .num{font-size:64px;font-weight:800;letter-spacing:-.04em;line-height:.85;color:var(--accent);}
+  .pct .lbl{font-size:13px;color:var(--ink-60);line-height:1.4;padding-bottom:6px;}
+  .pct .lbl b{color:var(--ink);font-weight:600;}
+  .climb{font-family:"SF Mono",monospace;font-size:12px;color:var(--ink-60);margin-bottom:24px;letter-spacing:.02em;}
+  .climb .up{color:var(--accent);}
+  .lb-group{margin-top:18px;}
+  .lb-group .gh{font-family:"SF Mono",monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-35);margin:0 0 8px;}
+  .lb-row{
+    display:grid;grid-template-columns:34px 1fr auto;align-items:center;gap:14px;
+    padding:11px 12px;border-radius:12px;
+    transition:background .3s var(--ease);
+  }
+  .lb-row .r{font-family:"SF Mono",monospace;font-size:13px;color:var(--ink-35);}
+  .lb-row .who{font-size:15px;font-weight:600;letter-spacing:-.01em;}
+  .lb-row .who small{font-weight:400;color:var(--ink-35);font-size:12px;margin-left:6px;}
+  .lb-row .sc{font-family:"SF Mono",monospace;font-size:14px;}
+  .lb-row.me{background:var(--ink);}
+  .lb-row.me .r,.lb-row.me .who,.lb-row.me .sc{color:var(--paper);}
+  .lb-row.me .who small{color:rgba(243,241,234,.5);}
+  .lb-divider{display:flex;align-items:center;gap:10px;padding:4px 12px;color:var(--ink-35);font-family:"SF Mono",monospace;font-size:11px;letter-spacing:.1em;}
+  .lb-divider::before,.lb-divider::after{content:"";height:1px;flex:1;background:var(--ink-14);}
+
+  /* ───────────────────────── FOOTER ───────────────────────── */
+  footer{padding:70px 0 60px;border-top:1px solid var(--ink);margin-top:40px;}
+  .foot-grid{display:flex;justify-content:space-between;align-items:flex-end;gap:30px;flex-wrap:wrap;}
+  .foot-big{font-size:clamp(30px,4vw,54px);font-weight:800;letter-spacing:-.03em;text-transform:uppercase;line-height:.95;}
+  .foot-note{font-size:11.5px;color:var(--ink-35);max-width:340px;line-height:1.6;}
+
+  /* ───────────────────────── REDUCED MOTION ───────────────────────── */
+  @media (prefers-reduced-motion: reduce){
+    html{scroll-behavior:auto;}
+    *{animation-duration:.001s !important;animation-iteration-count:1 !important;transition-duration:.001s !important;}
+    .title .row span{transform:none !important;}
+    .hero-foot,.scrollcue,.reveal{opacity:1 !important;transform:none !important;}
+    .runner{transition-duration:.001s !important;}
+    .running .runner .trail{animation:none !important;opacity:0 !important;}
+    .runner.leader .node::after{animation:none !important;opacity:0 !important;}
+    .title .ball-inline{animation:none !important;}
+    .scrollcue .bar::after{animation:none !important;}
+  }
+
+  @media (max-width:1100px){
+    .wrap{padding:0 32px;}
+    .topbar{padding:18px 32px;}
+    .scrollcue{left:32px;}
+    .duo{grid-template-columns:1fr;gap:48px;}
+    .topnav{display:none;}
+  }
+</style>
+</head>
+<body>
+
+  <!-- TOP BAR -->
+  <header class="topbar" id="topbar">
+    <div class="brandmark"><span class="dot"></span>WM 2026 — OFFICE CUP</div>
+    <nav class="topnav">
+      <a href="#race">The Race</a>
+      <a href="#picks">Your Picks</a>
+      <a href="#standing">Standing</a>
+    </nav>
+  </header>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-grid" aria-hidden="true"></div>
+    <div class="wrap">
+      <div class="hero-top">
+        <span class="eyebrow">11 Jun – 19 Jul · 48 teams · 104 games</span>
+        <div class="meta eyebrow">
+          <span class="big">A team sport,</span><br>played at your desk
+        </div>
+      </div>
+
+      <h1 class="title" aria-label="WM 2026 Office Cup">
+        <span class="row r1 l1"><span>WM&nbsp;2026</span></span>
+        <span class="row r2 l2"><span>OFFICE</span></span>
+        <span class="row r3 l3"><span>CUP<svg class="ball-inline" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="46" fill="none" stroke="currentColor" stroke-width="6"/><path d="M50 22 L70 37 L62 60 L38 60 L30 37 Z" fill="currentColor"/><path d="M50 22 L30 37 L14 30 M50 22 L70 37 L86 30 M38 60 L30 82 M62 60 L70 82" stroke="currentColor" stroke-width="5" fill="none"/></svg></span></span>
+      </h1>
+
+      <div class="hero-foot">
+        <p class="hero-lede">
+          Call every winner. <b>Carry your department</b> up the table.
+          <b>Two minutes</b> a round.
+        </p>
+        <div class="cta-col">
+          <button class="cta" id="enterCup">Join the cup <span class="arrow">→</span></button>
+          <p class="disclaimer">60 seconds. No password, no email. A private game by colleagues, for colleagues — not an Enpal project.</p>
+        </div>
+      </div>
+    </div>
+    <div class="scrollcue"><span class="bar"></span>See the race ↓</div>
+  </section>
+
+  <!-- THE RACE -->
+  <section class="block" id="race">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <div>
+          <div class="sec-index">01 — THE HERO</div>
+          <h2 class="sec-title">Department<br>Race</h2>
+        </div>
+        <p class="sec-sub">Six departments, one track. Every correct pick carries your team
+          up the line. Keep an eye on the head-to-head — that's where you pass.</p>
+      </div>
+
+      <div class="race-shell reveal">
+        <div class="race-top">
+          <div class="mover" id="mover">
+            <span class="glyph">↗</span>
+            <span class="mtxt"><small>Mover of the week</small><b>Tech jumped 2 — that's you</b></span>
+            <span class="mdelta">+2</span>
+          </div>
+          <span class="matchday-chip">Matchday 04 · live</span>
+        </div>
+
+        <div class="track" id="track">
+          <div class="endcaps">
+            <span class="cap start">Start</span>
+            <span class="cap finish">Finish</span>
+          </div>
+          <div class="axis">
+            <div class="gridlines" id="gridlines"></div>
+          </div>
+          <div class="lanes" id="lanes"></div>
+          <div class="finish-line" aria-hidden="true"></div>
+        </div>
+
+        <div class="race-actions">
+          <button class="ghost-btn" id="replay">↺ Replay the race</button>
+          <span class="race-note">Sales just blew past three teams. Score is average points per active player — so small teams compete fairly.</span>
+        </div>
+        <div class="confetti" id="confetti" aria-hidden="true"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTENT ZONE -->
+  <section class="block" id="picks">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <div>
+          <div class="sec-index">02 — THE GAME</div>
+          <h2 class="sec-title">More than<br>a leaderboard</h2>
+        </div>
+        <p class="sec-sub">Set your matchday in under a minute, then see exactly where you
+          land against the players right around you.</p>
+      </div>
+
+      <div class="duo">
+        <!-- PICKS -->
+        <div class="reveal">
+          <div class="panel-head">
+            <h3>Your picks · Matchday 05</h3>
+            <span class="h-meta" id="picksMeta">0 / 4 set</span>
+          </div>
+          <div id="matchlist"></div>
+          <div class="picks-foot">
+            <span class="picks-progress" id="picksProgress"><b>Tap who wins.</b> Draws count too.</span>
+            <button class="ghost-btn" id="savePicks">Save my picks</button>
+          </div>
+        </div>
+
+        <!-- LEADERBOARD (relative) -->
+        <div class="reveal" id="standing">
+          <div class="panel-head">
+            <h3>Where you stand</h3>
+            <span class="h-meta">You · TECH dept</span>
+          </div>
+          <div class="board-card">
+            <div class="pct">
+              <span class="num">Top&nbsp;18%</span>
+              <span class="lbl">of <b>180 players</b><br>in the cup</span>
+            </div>
+            <div class="climb">▲ <span class="up">up 4 this round</span> — #33 of 180. Keep climbing.</div>
+
+            <div class="lb-group">
+              <p class="gh">Top of the cup</p>
+              <div class="lb-row"><span class="r">01</span><span class="who">Marek V.<small>Ops</small></span><span class="sc">151</span></div>
+              <div class="lb-row"><span class="r">02</span><span class="who">Sofia R.<small>Sales</small></span><span class="sc">147</span></div>
+              <div class="lb-row"><span class="r">03</span><span class="who">Jan D.<small>Tech</small></span><span class="sc">142</span></div>
+            </div>
+
+            <div class="lb-divider">Within reach</div>
+
+            <div class="lb-group">
+              <div class="lb-row"><span class="r">32</span><span class="who">Priya K.<small>CS</small></span><span class="sc">98</span></div>
+              <div class="lb-row me"><span class="r">33</span><span class="who">You<small>Tech</small></span><span class="sc">96</span></div>
+              <div class="lb-row"><span class="r">34</span><span class="who">Tom B.<small>Marketing</small></span><span class="sc">95</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="wrap">
+      <div class="foot-grid">
+        <div class="foot-big">Pick.<br><span class="accent">Climb.</span> Repeat.</div>
+        <p class="foot-note">
+          A friendly World Cup prediction game by colleagues, for colleagues.
+          A private, personal project — not organised, endorsed by, or affiliated with Enpal.
+          No entry fee, no stakes — pure football bragging rights.
+        </p>
+      </div>
+    </div>
+  </footer>
+
+<script>
+(function(){
+  "use strict";
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ── load-in (title stagger) ── */
+  requestAnimationFrame(function(){
+    requestAnimationFrame(function(){ document.body.classList.add("loaded"); });
+  });
+
+  /* ── topbar solidify on scroll ── */
+  var topbar = document.getElementById("topbar");
+  function onScroll(){
+    if(window.scrollY > 40) topbar.classList.add("solid");
+    else topbar.classList.remove("solid");
+  }
+  window.addEventListener("scroll", onScroll, {passive:true});
+  onScroll();
+
+  /* ── reveal on scroll (IntersectionObserver, transform/opacity only) ── */
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){ e.target.classList.add("in"); io.unobserve(e.target); }
+    });
+  }, {threshold:.18, rootMargin:"0px 0px -8% 0px"});
+  document.querySelectorAll(".reveal").forEach(function(el){ io.observe(el); });
+
+  /* ──────────────── THE RACE ──────────────── */
+  /* start/end are fractions of the track [0..1]. Deliberate SPREAD + one real OVERTAKE.
+     Tech (=you) and CS share ONE head-to-head band so a node literally travels PAST the
+     other on the same axis: Tech starts behind CS, then crosses ahead into 3rd.
+     Sales is the biggest mover and blows past three teams into the lead.
+     Final order by `end` == rank order == points order (verified consistent):
+       Sales .92(151) > Ops .80(148) > Tech .66(138) > CS .58(127) > Marketing .40(112) > Retention .20(98) */
+  var depts = [
+    {name:"Sales",     tag:"SA", tint:"var(--accent)",          start:.34, end:.92, pts:151, you:false, leader:true},  // biggest mover → takes the lead
+    {name:"Ops",       tag:"OP", tint:"rgba(20,19,15,.92)",     start:.78, end:.80, pts:148, you:false},
+    {name:"Tech",      tag:"TE", tint:"var(--accent)",          start:.44, end:.66, pts:138, you:true,  duel:true},   // overtakes CS on the shared band
+    {name:"CS",        tag:"CS", tint:"rgba(20,19,15,.55)",     start:.56, end:.58, pts:127, you:false, duel:true},   // gets passed by Tech
+    {name:"Marketing", tag:"MK", tint:"rgba(20,19,15,.40)",     start:.26, end:.40, pts:112, you:false},
+    {name:"Retention", tag:"RE", tint:"rgba(20,19,15,.28)",     start:.10, end:.20, pts:98,  you:false}
+  ];
+
+  var lanesEl   = document.getElementById("lanes");
+  var gridEl    = document.getElementById("gridlines");
+  var moverEl   = document.getElementById("mover");
+  var trackEl   = document.getElementById("track");
+  var confettiBox = document.getElementById("confetti");
+
+  /* faint vertical gridlines at quartiles */
+  [0,25,50,75,100].forEach(function(p){
+    var s = document.createElement("span");
+    s.style.left = p + "%";
+    gridEl.appendChild(s);
+  });
+
+  var LABEL_W = 110; // px offset where the line / runners begin (matches CSS)
+  function usableWidth(){ return Math.max(120, trackEl.clientWidth - LABEL_W - 24); }
+  function px(frac){ return frac * usableWidth(); }
+
+  var runners = [];
+
+  function makeRunner(d){
+    var run = document.createElement("div");
+    run.className = "runner" + (d.you ? " you" : "") + (d.leader ? " leader" : "");
+    run.style.setProperty("--tint", d.tint);
+
+    var trail = document.createElement("span");
+    trail.className = "trail";
+
+    var token = document.createElement("span");
+    token.className = "token";
+    token.textContent = d.tag;
+
+    var node = document.createElement("span");
+    node.className = "node";
+
+    var name = document.createElement("span");
+    name.className = "name";
+    name.textContent = d.name;
+
+    var pts = document.createElement("span");
+    pts.className = "pts";
+    pts.textContent = d.pts + " pts";
+
+    run.appendChild(trail);
+    run.appendChild(node);
+
+    if(d.duel){
+      // in the shared band, group the label so it can float clear of the axis
+      var group = document.createElement("span");
+      group.className = "label-group";
+      group.appendChild(token);
+      group.appendChild(name);
+      group.appendChild(pts);
+      if(d.you){
+        var ytag = document.createElement("span");
+        ytag.className = "you-tag";
+        ytag.textContent = "YOU";
+        group.appendChild(ytag);
+      }
+      run.appendChild(group);
+    } else {
+      run.appendChild(token);
+      run.appendChild(name);
+      run.appendChild(pts);
+      if(d.you){
+        var tag = document.createElement("span");
+        tag.className = "you-tag";
+        tag.textContent = "YOU";
+        run.appendChild(tag);
+      }
+    }
+
+    run.style.transform = "translate(0,-50%)"; // start parked at origin
+    return run;
+  }
+
+  function build(){
+    lanesEl.innerHTML = "";
+    runners = [];
+    var i = 0;
+    while(i < depts.length){
+      var d = depts[i];
+      if(d.duel){
+        // collect the consecutive duel departments into ONE shared head-to-head band
+        var band = [];
+        while(i < depts.length && depts[i].duel){ band.push(depts[i]); i++; }
+        var lane = document.createElement("div");
+        lane.className = "lane duel";
+        var ghost = document.createElement("span");
+        ghost.className = "ghost-line";
+        lane.appendChild(ghost);
+        band.forEach(function(bd){
+          var run = makeRunner(bd);
+          lane.appendChild(run);
+          runners.push({el:run, d:bd});
+        });
+        lanesEl.appendChild(lane);
+      } else {
+        var lane2 = document.createElement("div");
+        lane2.className = "lane";
+        var lbl = document.createElement("span");
+        lbl.className = "lane-label";
+        lbl.textContent = d.name.toUpperCase();
+        var ghost2 = document.createElement("span");
+        ghost2.className = "ghost-line";
+        var run2 = makeRunner(d);
+        lane2.appendChild(lbl);
+        lane2.appendChild(ghost2);
+        lane2.appendChild(run2);
+        lanesEl.appendChild(lane2);
+        runners.push({el:run2, d:d});
+        i++;
+      }
+    }
+  }
+
+  var timers = [];
+  function clearTimers(){ timers.forEach(clearTimeout); timers = []; }
+
+  function park(){
+    // snap everyone to their START position with no transition
+    runners.forEach(function(o){
+      o.el.style.transition = "none";
+      o.el.style.transform = "translate(" + px(o.d.start) + "px,-50%)";
+    });
+    void trackEl.offsetWidth; // reflow so the next change animates
+  }
+
+  function run(){
+    clearTimers();
+    moverEl.classList.remove("show");
+    trackEl.classList.remove("running");
+    park();
+
+    timers.push(setTimeout(function(){
+      trackEl.classList.add("running");
+      runners.forEach(function(o){
+        // stagger the head-to-head pass so it's unmistakable: CS (passed) settles
+        // first and short; Tech (you) starts a beat later, travels longer, and crosses
+        // visibly PAST CS on the shared axis.
+        var dur = 2.1, delay = 0;
+        if(o.d.you && o.d.duel){ dur = 2.3; delay = .35; }       // the overtaker
+        else if(o.d.duel){ dur = 1.1; delay = 0; }                // the one being passed, settles early
+        o.el.style.transition = reduce
+          ? "transform .001s"
+          : "transform " + dur + "s var(--ease) " + delay + "s";
+        o.el.style.transform = "translate(" + px(o.d.end) + "px,-50%)";
+      });
+    }, reduce ? 0 : 240));
+
+    timers.push(setTimeout(function(){
+      moverEl.classList.add("show");
+      popConfetti();
+    }, reduce ? 30 : 2500));
+  }
+
+  /* confetti — accent + ink, transform/opacity only, via WAAPI.
+     Fires from the runner that actually overtook (Tech = you), so the celebration
+     reads as cause-and-effect — not from a corner chip. */
+  var confColors = ["#ec3a1e","#14130f","#ec3a1e","#9a9486"];
+  function popConfetti(){
+    if(reduce) return;
+    var overtaker = null;
+    runners.forEach(function(o){ if(o.d.you && o.d.duel) overtaker = o; });
+    var srcEl = overtaker ? overtaker.el.querySelector(".node") : moverEl;
+    var rect = srcEl.getBoundingClientRect();
+    var box = confettiBox.getBoundingClientRect();
+    var ox = rect.left - box.left + rect.width/2;
+    var oy = rect.top - box.top + rect.height/2;
+    for(var i=0;i<26;i++){
+      (function(){
+        var c = document.createElement("div");
+        c.className = "conf";
+        c.style.background = confColors[i % confColors.length];
+        c.style.left = ox + "px";
+        c.style.top = oy + "px";
+        confettiBox.appendChild(c);
+        var ang = -Math.PI/2 + (Math.random()-.5) * 2.4;
+        var dist = 70 + Math.random()*150;
+        var dx = Math.cos(ang)*dist;
+        var dy = Math.sin(ang)*dist - 30;
+        var rot = (Math.random()*640-320);
+        var dur = 900 + Math.random()*700;
+        c.animate([
+          {transform:"translate(0,0) rotate(0deg)", opacity:1},
+          {transform:"translate("+dx+"px,"+dy+"px) rotate("+rot+"deg)", opacity:1, offset:.72},
+          {transform:"translate("+(dx*1.08)+"px,"+(dy+170)+"px) rotate("+(rot*1.25)+"deg)", opacity:0}
+        ], {duration:dur, easing:"cubic-bezier(.2,.7,.3,1)", fill:"forwards"});
+        setTimeout(function(){ c.remove(); }, dur + 60);
+      })();
+    }
+  }
+
+  build();
+
+  /* run the race when it scrolls into view (once), and on replay */
+  var raceFired = false;
+  var raceIO = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting && !raceFired){
+        raceFired = true;
+        setTimeout(run, reduce ? 0 : 350);
+      }
+    });
+  }, {threshold:.35});
+  raceIO.observe(trackEl);
+
+  document.getElementById("replay").addEventListener("click", run);
+
+  /* "Join the cup" → scroll to the race */
+  document.getElementById("enterCup").addEventListener("click", function(){
+    document.getElementById("race").scrollIntoView({behavior: reduce ? "auto" : "smooth"});
+  });
+
+  /* keep positions correct on resize (no animation) */
+  var resizeT;
+  window.addEventListener("resize", function(){
+    clearTimeout(resizeT);
+    resizeT = setTimeout(function(){
+      runners.forEach(function(o){
+        o.el.style.transition = "none";
+        o.el.style.transform = "translate(" + px(raceFired ? o.d.end : o.d.start) + "px,-50%)";
+      });
+    }, 120);
+  });
+
+  /* ──────────────── PICKS PANEL ──────────────── */
+  var matches = [
+    {a:"Germany",   b:"Scotland",   when:"Sat 14 Jun · 18:00", lock:"Locks in 02:11", soon:true},
+    {a:"Brazil",    b:"Mexico",     when:"Sat 14 Jun · 21:00", lock:"Locks in 05:11", soon:false},
+    {a:"France",    b:"Canada",     when:"Sun 15 Jun · 18:00", lock:"Locks tomorrow", soon:false},
+    {a:"Argentina", b:"Japan",      when:"Sun 15 Jun · 21:00", lock:"Locks tomorrow", soon:false}
+  ];
+  var matchlist = document.getElementById("matchlist");
+  var picks = {};
+  function renderMatches(){
+    matchlist.innerHTML = "";
+    matches.forEach(function(m, idx){
+      var row = document.createElement("div");
+      row.className = "match";
+      row.innerHTML =
+        '<div class="when">'+ m.when.replace(" · ", "<br>") +'</div>' +
+        '<div class="teams">' +
+          '<button class="pickbtn" data-m="'+idx+'" data-p="home">'+ m.a +'</button>' +
+          '<span class="vs">vs</span>' +
+          '<button class="pickbtn" data-m="'+idx+'" data-p="away">'+ m.b +'</button>' +
+          '<button class="pickbtn draw" data-m="'+idx+'" data-p="draw">Draw</button>' +
+        '</div>' +
+        '<div class="lock'+(m.soon?" soon":"")+'">'+ m.lock +'</div>';
+      matchlist.appendChild(row);
+    });
+  }
+  renderMatches();
+
+  var picksMeta = document.getElementById("picksMeta");
+  var picksProgress = document.getElementById("picksProgress");
+  matchlist.addEventListener("click", function(e){
+    var btn = e.target.closest(".pickbtn");
+    if(!btn) return;
+    var m = btn.getAttribute("data-m");
+    // clear siblings in the same match
+    matchlist.querySelectorAll('.pickbtn[data-m="'+m+'"]').forEach(function(b){ b.classList.remove("sel"); });
+    btn.classList.add("sel");
+    picks[m] = btn.getAttribute("data-p");
+    var n = Object.keys(picks).length;
+    picksMeta.textContent = n + " / " + matches.length + " set";
+    picksProgress.innerHTML = n === matches.length
+      ? "<b>All set.</b> You can change picks until each match locks."
+      : "<b>"+n+" of "+matches.length+"</b> picked — keep going.";
+  });
+  document.getElementById("savePicks").addEventListener("click", function(){
+    var btn = this;
+    var n = Object.keys(picks).length;
+    btn.textContent = n === 0 ? "Tap a winner first" : "Picks locked in ✓";
+    setTimeout(function(){ btn.textContent = "Save my picks"; }, 1400);
+  });
+
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>WM 2026 Office Cup — Constellation Forge</title>
+<style>
+  :root{
+    --bg-top:#0A0E22;
+    --bg-bot:#04050C;
+    --ink:#EAF0FF;
+    --ink-60:rgba(234,240,255,.6);
+    --ink-38:rgba(234,240,255,.38);
+    --ink-20:rgba(234,240,255,.2);
+    --ink-10:rgba(234,240,255,.1);
+    --hair:rgba(234,240,255,.14);
+    --ease:cubic-bezier(.16,1,.3,1);
+    --ease-soft:cubic-bezier(.33,1,.68,1);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;}
+  html{-webkit-text-size-adjust:100%;}
+  body{
+    background:linear-gradient(180deg,var(--bg-top) 0%,var(--bg-bot) 100%);
+    color:var(--ink);
+    font-family:"Helvetica Neue",Helvetica,"Inter","Segoe UI",system-ui,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    overflow:hidden;
+    line-height:1.4;
+    height:100dvh;
+    position:fixed;inset:0;
+    touch-action:none;
+  }
+  .mono{font-family:"SF Mono",ui-monospace,"Roboto Mono",Menlo,Consolas,monospace;}
+
+  #stage{position:fixed;inset:0;z-index:0;}
+  #sky{position:absolute;inset:0;display:block;width:100%;height:100%;}
+
+  /* faint vignette to seat the sky */
+  .vignette{position:fixed;inset:0;z-index:1;pointer-events:none;
+    background:radial-gradient(130% 120% at 50% 42%,transparent 52%,rgba(2,3,8,.55) 100%);}
+
+  /* ───────────────────── HUD overlay ───────────────────── */
+  .hud{position:fixed;inset:0;z-index:3;pointer-events:none;}
+  .hud > *{pointer-events:auto;}
+
+  .topline{
+    position:absolute;top:0;left:0;right:0;
+    display:flex;align-items:flex-start;justify-content:space-between;
+    padding:clamp(16px,3vw,30px) clamp(18px,4vw,44px);
+  }
+  .brand{display:flex;align-items:center;gap:11px;}
+  .brand .glyph{
+    width:13px;height:13px;border-radius:50%;
+    background:radial-gradient(circle at 38% 34%,#fff,#9fb6ff 46%,rgba(80,110,220,0) 72%);
+    box-shadow:0 0 14px 2px rgba(150,180,255,.7);
+    flex:none;
+  }
+  .brand .txt{font-size:12.5px;letter-spacing:.04em;font-weight:600;}
+  .brand .txt small{display:block;font-size:10px;letter-spacing:.34em;
+    text-transform:uppercase;color:var(--ink-38);font-weight:400;margin-top:3px;}
+
+  .clock{text-align:right;font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:var(--ink-38);}
+  .clock b{display:block;color:var(--ink);font-size:12.5px;letter-spacing:.16em;margin-top:4px;font-weight:600;}
+
+  /* zoom toggle */
+  .lens{
+    position:absolute;top:50%;right:clamp(14px,3.4vw,34px);transform:translateY(-50%);
+    display:flex;flex-direction:column;gap:10px;
+  }
+  .lens button{
+    -webkit-appearance:none;appearance:none;cursor:pointer;
+    width:46px;height:46px;border-radius:14px;
+    background:rgba(234,240,255,.04);
+    border:1px solid var(--hair);
+    color:var(--ink-60);
+    backdrop-filter:blur(6px);
+    display:flex;align-items:center;justify-content:center;
+    transition:background .4s var(--ease),border-color .4s var(--ease),color .4s var(--ease),transform .5s var(--ease);
+  }
+  .lens button:hover{background:rgba(234,240,255,.08);color:var(--ink);border-color:var(--ink-20);}
+  .lens button:active{transform:scale(.92);}
+  .lens button.on{background:rgba(159,182,255,.16);border-color:rgba(159,182,255,.45);color:#fff;}
+  .lens svg{width:20px;height:20px;display:block;}
+
+  /* bottom: your star + tonight's picks */
+  .dock{
+    position:absolute;left:0;right:0;bottom:0;
+    padding:clamp(16px,3vw,26px) clamp(18px,4vw,44px) clamp(20px,3.4vw,34px);
+    display:flex;align-items:flex-end;justify-content:space-between;gap:24px;
+    background:linear-gradient(0deg,rgba(4,5,12,.62) 0%,rgba(4,5,12,.18) 62%,transparent 100%);
+  }
+  .me{min-width:0;}
+  .me .label{font-size:10px;letter-spacing:.32em;text-transform:uppercase;color:var(--ink-38);}
+  .me .name{font-size:clamp(16px,2.4vw,22px);font-weight:600;letter-spacing:.01em;margin-top:7px;display:flex;align-items:center;gap:10px;}
+  .me .name .dot{width:9px;height:9px;border-radius:50%;flex:none;
+    box-shadow:0 0 12px 1px currentColor;}
+  .me .sub{font-size:11.5px;color:var(--ink-60);margin-top:6px;letter-spacing:.02em;}
+  .me .sub b{color:var(--ink);font-weight:600;}
+
+  .picks{display:flex;flex-direction:column;align-items:flex-end;gap:11px;max-width:min(56vw,440px);}
+  .picks .ttl{font-size:10px;letter-spacing:.32em;text-transform:uppercase;color:var(--ink-38);}
+  .matchrow{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;}
+  .match{
+    display:flex;align-items:center;gap:9px;
+    background:rgba(234,240,255,.035);
+    border:1px solid var(--hair);
+    border-radius:13px;
+    padding:8px 9px 8px 13px;
+    backdrop-filter:blur(5px);
+    transition:border-color .4s var(--ease),background .4s var(--ease),opacity .6s var(--ease),transform .6s var(--ease);
+  }
+  .match .teams{font-size:12px;letter-spacing:.04em;white-space:nowrap;color:var(--ink-60);}
+  .match .teams b{color:var(--ink);font-weight:600;}
+  .seg{display:flex;gap:4px;}
+  .seg button{
+    -webkit-appearance:none;appearance:none;cursor:pointer;
+    width:30px;height:30px;border-radius:9px;
+    border:1px solid var(--hair);
+    background:transparent;color:var(--ink-60);
+    font-size:12px;font-weight:700;letter-spacing:.02em;
+    font-family:inherit;
+    transition:all .32s var(--ease);
+  }
+  .seg button:hover{color:var(--ink);border-color:var(--ink-20);}
+  .seg button:active{transform:scale(.88);}
+  .seg button.aim{color:#04050C;border-color:transparent;
+    box-shadow:0 0 16px 1px currentColor;}
+  .match.locked{opacity:.42;}
+  .match.locked .seg button{pointer-events:none;}
+  .match.correct{border-color:rgba(159,182,255,.4);}
+
+  /* nova banner */
+  .nova-cap{
+    position:absolute;top:clamp(70px,16vh,150px);left:50%;transform:translate(-50%,-14px);
+    text-align:center;opacity:0;pointer-events:none;
+    transition:opacity .7s var(--ease),transform .9s var(--ease);
+  }
+  .nova-cap.show{opacity:1;transform:translate(-50%,0);}
+  .nova-cap .k{font-size:10px;letter-spacing:.42em;text-transform:uppercase;color:var(--ink-38);}
+  .nova-cap .v{font-size:clamp(20px,3.4vw,30px);font-weight:600;letter-spacing:.01em;margin-top:9px;
+    text-shadow:0 0 28px rgba(255,255,255,.35);}
+  .nova-cap .v em{font-style:normal;}
+
+  /* tiny scrim hint shown once, fades */
+  .hint{
+    position:absolute;left:50%;bottom:clamp(118px,22vh,170px);transform:translateX(-50%);
+    font-size:10.5px;letter-spacing:.28em;text-transform:uppercase;color:var(--ink-38);
+    opacity:0;transition:opacity 1s var(--ease);text-align:center;pointer-events:none;
+  }
+  .hint.show{opacity:1;}
+
+  /* reduced-motion notice (only shown in RM mode) */
+  .rm-note{display:none;}
+  @media (prefers-reduced-motion: reduce){
+    .rm-note{display:block;}
+  }
+
+  @media (max-width:560px){
+    .picks{max-width:64vw;}
+    .match .teams{display:none;}
+    .match{padding:6px;gap:0;}
+    .lens{top:auto;bottom:clamp(150px,30vh,220px);transform:none;}
+  }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <canvas id="sky"></canvas>
+  </div>
+  <div class="vignette"></div>
+
+  <div class="hud">
+    <div class="topline">
+      <div class="brand">
+        <span class="glyph"></span>
+        <span class="txt">Constellation Forge<small>WM 2026 · Office Cup</small></span>
+      </div>
+      <div class="clock">
+        Matchday 02 · Group Stage
+        <b id="clk">Tonight — 6 fixtures</b>
+      </div>
+    </div>
+
+    <div class="nova-cap" id="novaCap">
+      <div class="k">Overtake</div>
+      <div class="v"><em id="novaName">Tech</em> takes the sky</div>
+    </div>
+
+    <div class="lens" role="group" aria-label="Zoom">
+      <button id="zNear" class="on" title="Your star" aria-label="Zoom to your star">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3.4"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3" stroke-linecap="round"/></svg>
+      </button>
+      <button id="zFar" title="Whole sky" aria-label="Zoom out to whole sky">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+
+    <div class="hint" id="hint">Tap W · D · L to aim each star · pinch to see all eight</div>
+
+    <div class="dock">
+      <div class="me">
+        <div class="label">Your star</div>
+        <div class="name"><span class="dot" id="meDot"></span><span id="meName">A. Schmidt</span></div>
+        <div class="sub" id="meSub">— pts · drawing <b id="meDept">Tech</b></div>
+      </div>
+      <div class="picks">
+        <div class="ttl rm-note" style="color:var(--ink-60);letter-spacing:.06em;text-transform:none;font-size:11px;">
+          Reduced motion: the sky is drawn still — the brightest constellation leads.
+        </div>
+        <div class="ttl">Tonight — aim your stars</div>
+        <div class="matchrow" id="matchRow"></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+"use strict";
+(function(){
+  const canvas = document.getElementById('sky');
+  const ctx = canvas.getContext('2d', { alpha:true });
+  const REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ───────────── data: 6 departments ─────────────
+     points are the only source of truth for rank.
+     The overtake happens because YOUR dept's pending-correct
+     picks raise its total past the current leader — not a label. */
+  const DEPTS = [
+    { id:'ops',   name:'Ops',        hue:18,  pts:184, you:false },
+    { id:'sales', name:'Sales',      hue:285, pts:171, you:false },
+    { id:'tech',  name:'Tech',       hue:212, pts:158, you:true  },  // you
+    { id:'cs',    name:'CS',         hue:152, pts:149, you:false },
+    { id:'reten', name:'Retention',  hue:46,  pts:138, you:false },
+    { id:'mktg',  name:'Marketing',  hue:330, pts:121, you:false },
+  ];
+  const D = {}; DEPTS.forEach(d=>D[d.id]=d);
+  const YOU = DEPTS.find(d=>d.you);
+
+  // Tonight's fixtures the player aims. The 3 "willResolve" correct picks
+  // add 30 pts to Tech (10 each) -> 158+30 = 188 > Ops 184  => Tech overtakes.
+  const FIXTURES = [
+    { a:'GER', b:'MEX', pick:'W', willResolve:true,  pts:10 },
+    { a:'BRA', b:'ESP', pick:'D', willResolve:true,  pts:10 },
+    { a:'FRA', b:'USA', pick:'W', willResolve:true,  pts:10 },
+  ];
+
+  const TINT = h => `hsl(${h} 62% 70%)`;
+  const TINT_A = (h,a) => `hsla(${h} 64% 72% / ${a})`;
+  const NEB = (h,a) => `hsla(${h} 54% 50% / ${a})`;
+
+  /* ───────────── layout the constellations ─────────────
+     Each dept gets an anchor in sky-space (units, not px). Stars are
+     scattered around the anchor with hand-tuned offsets so each reads as
+     a small figure. Lines connect consecutive stars (the "drawing"). */
+  let W=0,H=0,DPR=1,MIN=0;
+  function shapeFor(n, seed){
+    // pseudo-random but stable scatter forming a loose constellation
+    const pts=[]; let s=seed*9301+49297;
+    const rnd=()=>{ s=(s*9301+49297)%233280; return s/233280; };
+    for(let i=0;i<n;i++){
+      const ang = (i/n)*Math.PI*2 + (rnd()-.5)*1.1;
+      const rad = 0.34 + rnd()*0.62;
+      pts.push([Math.cos(ang)*rad, Math.sin(ang)*rad*0.86]);
+    }
+    return pts;
+  }
+  // anchors in normalized sky space (-1..1 ish), spread around your star at origin
+  const ANCHOR = {
+    tech:  [ 0.00,  0.04],   // you — near center
+    ops:   [ 0.62, -0.40],
+    sales: [-0.66, -0.30],
+    cs:    [-0.50,  0.52],
+    reten: [ 0.58,  0.50],
+    mktg:  [ 0.05, -0.66],
+  };
+  const STAR_N = { tech:7, ops:6, sales:6, cs:5, reten:5, mktg:4 };
+
+  const sky = [];   // constellations
+  DEPTS.forEach((d,di)=>{
+    const n = STAR_N[d.id];
+    const base = shapeFor(n, di+3);
+    const [ax,ay] = ANCHOR[d.id];
+    const stars = base.map((p,i)=>({
+      x: ax + p[0]*0.32,
+      y: ay + p[1]*0.32,
+      r: (d.you && i===0) ? 3.2 : 1.4 + (i%2?0.5:0),
+      ig: 0,          // ignition 0..1 (animated)
+      tIg: (i<Math.round(n*0.7))?1:0, // most already forged from earlier matchdays
+      flare: 0,       // transient nova flare 0..1
+      twk: Math.random()*6.28,
+      isYou: d.you && i===0,
+    }));
+    // links: simple chain + a couple of cross links for figure feel
+    const links=[];
+    for(let i=0;i<stars.length-1;i++) links.push([i,i+1]);
+    if(stars.length>3) links.push([0, stars.length-1]);
+    if(stars.length>4) links.push([1, stars.length-2]);
+    sky.push({ d, stars, links, anchor:ANCHOR[d.id] });
+  });
+
+  // background nebula field particles (dust) — each tinted by nearest dept,
+  // they drift toward the gravitational center (leader-weighted).
+  const dust=[];
+  const DUST_N = REDUCED?0:140;
+  for(let i=0;i<DUST_N;i++){
+    dust.push({
+      x:(Math.random()*2-1)*1.5, y:(Math.random()*2-1)*1.2,
+      z:0.3+Math.random()*0.9, hue:DEPTS[(Math.random()*DEPTS.length)|0].hue,
+      tw:Math.random()*6.28
+    });
+  }
+  // deep parallax starfield (3 layers) — pure ambience
+  const field=[];
+  const FIELD_N = REDUCED?160:420;
+  for(let i=0;i<FIELD_N;i++){
+    const layer = i%3; // 0 far .. 2 near
+    field.push({
+      x:Math.random()*2-1, y:Math.random()*2-1,
+      z:0.18+layer*0.34,
+      r:0.4+layer*0.55+Math.random()*0.5,
+      a:0.18+layer*0.16+Math.random()*0.2,
+      tw:Math.random()*6.28, ts:0.4+Math.random()*1.1
+    });
+  }
+
+  /* ───────────── camera ─────────────
+     center = gravitational center of mass weighted by points (the
+     leader pulls the sky toward itself). zoom toggles near/far. */
+  const cam = { x:0, y:0, zoom:1, tx:0, ty:0, tzoom:1, mode:'near' };
+  function gravityCenter(){
+    let sx=0,sy=0,sw=0;
+    sky.forEach(c=>{
+      const w = Math.pow(Math.max(c.d.pts-100,4), 1.7); // emphasise leader
+      sx += c.anchor[0]*w; sy += c.anchor[1]*w; sw += w;
+    });
+    return [sx/sw, sy/sw];
+  }
+  function setCam(){
+    const g = gravityCenter();
+    if(cam.mode==='near'){
+      cam.tzoom = 1.0;
+      // near view sits on your star but biased a touch toward gravity
+      cam.tx = YOU ? (ANCHOR['tech'][0]*0.6 + g[0]*0.4) : g[0];
+      cam.ty = YOU ? (ANCHOR['tech'][1]*0.6 + g[1]*0.4) : g[1];
+    }else{
+      cam.tzoom = 0.46;
+      cam.tx = g[0]; cam.ty = g[1];
+    }
+  }
+  setCam(); cam.x=cam.tx; cam.y=cam.ty; cam.zoom=cam.tzoom;
+
+  // pointer parallax (slow premium drift)
+  const ptr = { x:0, y:0, tx:0, ty:0 };
+  function onMove(cx,cy){
+    ptr.tx = (cx/W*2-1)*0.5;
+    ptr.ty = (cy/H*2-1)*0.5;
+  }
+  window.addEventListener('pointermove', e=>onMove(e.clientX,e.clientY), {passive:true});
+  window.addEventListener('touchmove', e=>{ if(e.touches[0]) onMove(e.touches[0].clientX,e.touches[0].clientY); }, {passive:true});
+
+  /* ───────────── projection ───────────── */
+  function project(x,y,z){
+    // z is parallax depth (0..1), bigger = closer = moves more with cam/ptr
+    const par = 0.4 + z*0.6;
+    const px = (x - cam.x*par) - ptr.x*z*0.16;
+    const py = (y - cam.y*par) - ptr.y*z*0.16;
+    const sc = MIN * 0.46 * cam.zoom;
+    return [ W*0.5 + px*sc, H*0.5 + py*sc, sc ];
+  }
+
+  function resize(){
+    DPR = Math.min(window.devicePixelRatio||1, 2);
+    W = window.innerWidth; H = window.innerHeight; MIN=Math.min(W,H);
+    canvas.width = W*DPR; canvas.height = H*DPR;
+    canvas.style.width=W+'px'; canvas.style.height=H+'px';
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+  }
+  window.addEventListener('resize', resize); resize();
+
+  /* ───────────── current leader (data-driven) ───────────── */
+  function leaderId(){
+    let best=sky[0].d, bp=-1;
+    DEPTS.forEach(d=>{ if(d.pts>bp){bp=d.pts;best=d;} });
+    return best.id;
+  }
+  let curLeader = leaderId();
+
+  /* ───────────── render ───────────── */
+  let t0 = performance.now();
+  function draw(now){
+    const t = (now - t0)/1000;
+    // ease camera + pointer
+    cam.x += (cam.tx-cam.x)*0.045;
+    cam.y += (cam.ty-cam.y)*0.045;
+    cam.zoom += (cam.tzoom-cam.zoom)*0.05;
+    ptr.x += (ptr.tx-ptr.x)*0.04;
+    ptr.y += (ptr.ty-ptr.y)*0.04;
+
+    ctx.clearRect(0,0,W,H);
+
+    // gravitational center for nebula pull
+    const g = gravityCenter();
+    const lead = D[curLeader];
+    const farZoom = cam.zoom < 0.62; // LOD threshold
+
+    // ---- nebula glows (additive) : one per dept, brightness = points ----
+    ctx.globalCompositeOperation='lighter';
+    sky.forEach(c=>{
+      const isLead = c.d.id===curLeader;
+      const norm = (c.d.pts-110)/90;               // ~0..1
+      const lum = Math.max(0.06, Math.min(0.9, norm)) * (isLead?1.25:1) * c.d.dim;
+      const [sx,sy,sc] = project(c.anchor[0], c.anchor[1], 0.55);
+      const rad = sc*(isLead?0.95:0.66);
+      const grd = ctx.createRadialGradient(sx,sy,0,sx,sy,rad);
+      grd.addColorStop(0, NEB(c.d.hue, 0.22*lum));
+      grd.addColorStop(0.5, NEB(c.d.hue, 0.09*lum));
+      grd.addColorStop(1, NEB(c.d.hue, 0));
+      ctx.fillStyle=grd;
+      ctx.beginPath(); ctx.arc(sx,sy,rad,0,6.283); ctx.fill();
+    });
+
+    // ---- dust pulled toward gravity center ----
+    if(!REDUCED){
+      dust.forEach(p=>{
+        // gentle pull toward g
+        p.x += (g[0]-p.x)*0.0006;
+        p.y += (g[1]-p.y)*0.0006;
+        const tw = 0.5+0.5*Math.sin(now*0.0008 + p.tw);
+        const [sx,sy] = project(p.x,p.y,p.z*0.6);
+        ctx.fillStyle = NEB(p.hue, 0.05*tw);
+        ctx.beginPath(); ctx.arc(sx,sy, 1.1+p.z, 0,6.283); ctx.fill();
+      });
+    }
+
+    // ---- deep parallax starfield ----
+    field.forEach(p=>{
+      const tw = REDUCED?1:(0.55+0.45*Math.sin(now*0.001*p.ts + p.tw));
+      const [sx,sy] = project(p.x,p.y,p.z);
+      if(sx<-20||sx>W+20||sy<-20||sy>H+20) return;
+      ctx.fillStyle = `rgba(220,230,255,${p.a*tw})`;
+      ctx.beginPath(); ctx.arc(sx,sy,p.r,0,6.283); ctx.fill();
+    });
+
+    ctx.globalCompositeOperation='source-over';
+
+    // ---- constellations ----
+    sky.forEach(c=>{
+      const isLead = c.d.id===curLeader;
+      // LOD: when zoomed far, collapse to a single glyph + glow
+      if(farZoom){
+        const [sx,sy,sc] = project(c.anchor[0], c.anchor[1], 0.6);
+        const norm = Math.max(0.12,Math.min(1,(c.d.pts-110)/90))*c.d.dim;
+        // glow
+        ctx.globalCompositeOperation='lighter';
+        const r=sc*(isLead?0.34:0.22);
+        const gg=ctx.createRadialGradient(sx,sy,0,sx,sy,r);
+        gg.addColorStop(0, TINT_A(c.d.hue, 0.9*norm));
+        gg.addColorStop(0.4, TINT_A(c.d.hue, 0.3*norm));
+        gg.addColorStop(1, TINT_A(c.d.hue, 0));
+        ctx.fillStyle=gg; ctx.beginPath(); ctx.arc(sx,sy,r,0,6.283); ctx.fill();
+        ctx.globalCompositeOperation='source-over';
+        // glyph core
+        ctx.fillStyle=`rgba(255,255,255,${0.7*norm+0.2})`;
+        ctx.beginPath(); ctx.arc(sx,sy, (isLead?3.4:2.2)+norm*1.5, 0,6.283); ctx.fill();
+        // label
+        ctx.font='600 11px "Helvetica Neue",system-ui,sans-serif';
+        ctx.textAlign='center';
+        ctx.fillStyle=`rgba(234,240,255,${0.3+0.55*norm})`;
+        ctx.fillText(c.d.name.toUpperCase(), sx, sy + r*0.5 + 16);
+        if(c.d.you){
+          ctx.fillStyle=TINT_A(c.d.hue,0.9);
+          ctx.font='600 8.5px "SF Mono",ui-monospace,monospace';
+          ctx.fillText('· YOU ·', sx, sy + r*0.5 + 28);
+        }
+        return;
+      }
+
+      // full detail: lines then stars
+      const leadTint = isLead;
+      c.links.forEach(([i,j])=>{
+        const A=c.stars[i], B=c.stars[j];
+        const drawn = Math.min(A.ig,B.ig); // line only as bright as its dimmer endpoint
+        if(drawn<=0.01) return;
+        const [ax,ay]=project(A.x,A.y,0.5);
+        const [bx,by]=project(B.x,B.y,0.5);
+        const baseA = 0.14*drawn;
+        const tintMix = leadTint?0.7:0.0;
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = leadTint ? TINT_A(c.d.hue, (0.5)*drawn*c.d.dim)
+                                   : `rgba(234,240,255,${(baseA+0.28*drawn)*c.d.dim})`;
+        ctx.beginPath(); ctx.moveTo(ax,ay); ctx.lineTo(bx,by); ctx.stroke();
+      });
+
+      c.stars.forEach(s=>{
+        const [sx,sy,sc]=project(s.x,s.y,0.5);
+        const tw = REDUCED?1:(0.7+0.3*Math.sin(now*0.0015 + s.twk));
+        const ign = s.ig;
+        const base = (0.18 + 0.62*ign)*c.d.dim;
+        const rr = (s.r)*(1 + 0.7*ign + s.flare*1.6);
+        // halo (additive, dept-tinted)
+        if(ign>0.02 || s.flare>0.01){
+          ctx.globalCompositeOperation='lighter';
+          const hr = rr*(5 + s.flare*9);
+          const hg=ctx.createRadialGradient(sx,sy,0,sx,sy,hr);
+          const ha=(0.18*ign + 0.7*s.flare)*c.d.dim;
+          hg.addColorStop(0, TINT_A(c.d.hue, ha));
+          hg.addColorStop(0.5, TINT_A(c.d.hue, ha*0.35));
+          hg.addColorStop(1, TINT_A(c.d.hue, 0));
+          ctx.fillStyle=hg; ctx.beginPath(); ctx.arc(sx,sy,hr,0,6.283); ctx.fill();
+          ctx.globalCompositeOperation='source-over';
+        }
+        // core (cool white)
+        ctx.fillStyle = `rgba(255,255,255,${Math.min(1,(base+0.25)*tw)})`;
+        ctx.beginPath(); ctx.arc(sx,sy, rr, 0,6.283); ctx.fill();
+
+        // your star ring
+        if(s.isYou){
+          ctx.strokeStyle = TINT_A(c.d.hue, 0.55+0.25*Math.sin(now*0.003));
+          ctx.lineWidth=1.4;
+          ctx.beginPath(); ctx.arc(sx,sy, rr+6, 0,6.283); ctx.stroke();
+        }
+      });
+    });
+
+    // ---- "you are here" label near your star (near view only) ----
+    if(!farZoom && YOU){
+      const ys = sky.find(c=>c.d.you).stars[0];
+      const [sx,sy]=project(ys.x,ys.y,0.5);
+      ctx.font='600 9px "SF Mono",ui-monospace,monospace';
+      ctx.textAlign='left';
+      ctx.fillStyle=TINT_A(YOU.hue,0.85);
+      ctx.fillText('YOUR STAR', sx+14, sy-10);
+    }
+
+    rafId = requestAnimationFrame(draw);
+  }
+
+  /* ───────────── ignition + nova sequence ─────────────
+     - igniteStar: animate one star's ig 0->1 + a flare; draws its lines on.
+     - novaCascade: chain flares down a constellation's links, recenter cam,
+       dim former leader 15%. Triggered by a REAL points change. */
+  function animTo(obj, key, to, dur, ease, onDone){
+    const from = obj[key], start=performance.now();
+    function step(n){
+      let p=Math.min(1,(n-start)/dur);
+      const e = ease? ease(p): p;
+      obj[key]=from+(to-from)*e;
+      if(p<1) requestAnimationFrame(step); else if(onDone) onDone();
+    }
+    requestAnimationFrame(step);
+  }
+  const easeOut = p=>1-Math.pow(1-p,3);
+  const easeInOut = p=> p<.5?4*p*p*p:1-Math.pow(-2*p+2,3)/2;
+
+  function igniteStar(c, idx){
+    const s=c.stars[idx]; if(!s) return;
+    s.tIg=1;
+    animTo(s,'ig', 1, 700, easeOut);
+    s.flare=0; animTo(s,'flare', 1, 160, easeOut, ()=>animTo(s,'flare',0,520,easeOut));
+  }
+
+  function novaCascade(deptId){
+    const c = sky.find(x=>x.d.id===deptId);
+    if(!c) return;
+    // ignite/flare every star down the chain, ~700ms total
+    const order = c.stars.map((_,i)=>i);
+    const step = Math.max(70, Math.min(120, 700/Math.max(1,order.length)));
+    order.forEach((idx,k)=>{
+      setTimeout(()=>{
+        const s=c.stars[idx]; s.tIg=1;
+        animTo(s,'ig', 1, 520, easeOut);
+        s.flare=0; animTo(s,'flare', 1.15, 150, easeOut, ()=>animTo(s,'flare',0,560,easeOut));
+      }, k*step);
+    });
+  }
+
+  // banner
+  const novaCap=document.getElementById('novaCap');
+  const novaName=document.getElementById('novaName');
+
+  /* ───────────── the scripted teaser ─────────────
+     Honest overtake: we resolve Tech's 3 correct picks, each adds 10 pts.
+     After the 3rd, Tech (188) > Ops (184). leaderId() recomputes -> nova. */
+  let rafId;
+  function buildMatchUI(){
+    const row=document.getElementById('matchRow');
+    FIXTURES.forEach((f,i)=>{
+      const m=document.createElement('div'); m.className='match'; m.dataset.i=i;
+      const tint = TINT(YOU.hue);
+      m.innerHTML =
+        `<span class="teams"><b>${f.a}</b> v ${f.b}</span>`+
+        `<span class="seg">`+
+          ['W','D','L'].map(k=>`<button data-k="${k}" style="--t:${tint}">${k}</button>`).join('')+
+        `</span>`;
+      row.appendChild(m);
+      const segBtns=[...m.querySelectorAll('button')];
+      function aim(k, fromUser){
+        segBtns.forEach(b=>{
+          const on = b.dataset.k===k;
+          b.classList.toggle('aim', on);
+          b.style.background = on? tint : 'transparent';
+          b.style.color = on? '#04050C' : '';
+        });
+        f.pick=k;
+        if(fromUser) m.classList.add('user-aimed');
+      }
+      segBtns.forEach(b=> b.addEventListener('click', ()=>aim(b.dataset.k,true)) );
+      f._aim=aim; f._el=m;
+    });
+  }
+  buildMatchUI();
+
+  function lockMatch(f){
+    f._el.classList.add('locked');
+  }
+  function markCorrect(f){
+    f._el.classList.add('correct');
+  }
+
+  // me dot tint + sub
+  const meDot=document.getElementById('meDot');
+  meDot.style.color = TINT(YOU.hue);
+  meDot.style.background = TINT(YOU.hue);
+  document.getElementById('meDept').textContent = YOU.name;
+  function refreshMe(){
+    const rank = [...DEPTS].sort((a,b)=>b.pts-a.pts).findIndex(d=>d.id===YOU.id)+1;
+    document.getElementById('meSub').innerHTML =
+      `${YOU.pts} pts · drawing <b>${YOU.name}</b> · dept rank #${rank}`;
+  }
+  refreshMe();
+
+  // zoom controls
+  const zNear=document.getElementById('zNear'), zFar=document.getElementById('zFar');
+  function setMode(m){
+    cam.mode=m; setCam();
+    zNear.classList.toggle('on', m==='near');
+    zFar.classList.toggle('on', m==='far');
+  }
+  zNear.addEventListener('click',()=>setMode('near'));
+  zFar.addEventListener('click',()=>setMode('far'));
+  // wheel / pinch-ish to far
+  window.addEventListener('wheel', e=>{
+    if(e.deltaY>8 && cam.mode==='near') setMode('far');
+    else if(e.deltaY<-8 && cam.mode==='far') setMode('near');
+  }, {passive:true});
+
+  function showHint(){
+    const h=document.getElementById('hint'); h.classList.add('show');
+    setTimeout(()=>h.classList.remove('show'), 4200);
+  }
+
+  // dim helper on each dept (multiplier) — must be set before either render
+  // path so draw() never reads c.d.dim as undefined (NaN -> blank sky).
+  DEPTS.forEach(d=>{ d.dim = 1; });
+
+  /* ───────────── REDUCED MOTION: static drawn sky + 1 pulse ───────────── */
+  if(REDUCED){
+    // forge most stars instantly, draw lines, one soft pulse on leader
+    sky.forEach(c=> c.stars.forEach((s,i)=>{ s.ig = s.tIg?1:0.25; }));
+    // resolve picks statically so totals are "final" (Tech already led)
+    FIXTURES.forEach(f=>{ if(f.willResolve){ YOU.pts += f.pts; } });
+    curLeader = leaderId();
+    sky.find(c=>c.d.you).stars.forEach(s=> s.ig=1);
+    refreshMe();
+    // single, slow pulse on the leader glyph (opacity only via dim oscillation is jarring;
+    // instead set a gentle flare that the render fades — but no raf loop for motion).
+    // We still need one paint; run a short, bounded fade (not a loop).
+    const lc=sky.find(c=>c.d.id===curLeader);
+    lc.stars.forEach(s=> s.flare=0.5);
+    // draw once, then a single eased decay over ~1.4s, then stop.
+    let start=performance.now();
+    (function pulse(n){
+      const p=Math.min(1,(n-start)/1400);
+      lc.stars.forEach(s=> s.flare = 0.5*(1-easeOut(p)));
+      draw(n);
+      if(p<1) requestAnimationFrame(pulse);
+    })(start);
+    novaName.textContent=lead_name(curLeader);
+    return; // no autonomous sequence
+  }
+
+  function lead_name(id){ return D[id].name; }
+
+  /* ───────────── full sequence ───────────── */
+  rafId = requestAnimationFrame(draw);
+
+  // pre-ignite the "already forged" stars softly so the sky isn't empty
+  sky.forEach(c=> c.stars.forEach((s,i)=>{
+    if(s.tIg){ setTimeout(()=>animTo(s,'ig',1, 900, easeOut), 200 + Math.random()*900); }
+  }));
+
+  function timeline(){
+    const seq=[];
+    let at=0; const push=(ms,fn)=>{ at+=ms; seq.push(setTimeout(fn,at)); };
+
+    // 0.6s: hint
+    push(700, showHint);
+
+    // 1.2s: auto-aim Tech's picks one by one (feels like the player tapping)
+    FIXTURES.forEach((f,i)=>{
+      push(i===0?600:380, ()=> f._aim(f.pick,false));
+    });
+
+    // 3.0s: resolve picks in sequence; each correct -> +pts, ignite a NEW Tech star
+    const youCon = sky.find(c=>c.d.you);
+    // find currently-dark stars in Tech to forge on correct picks
+    let darkIdx = youCon.stars.map((s,i)=>i).filter(i=>!youCon.stars[i].tIg);
+    FIXTURES.forEach((f,i)=>{
+      push(i===0?900:560, ()=>{
+        lockMatch(f);
+        if(f.willResolve){
+          markCorrect(f);
+          YOU.pts += f.pts;                      // REAL points change
+          refreshMe();
+          const idx = darkIdx.length? darkIdx.shift() : (youCon.stars.length-1-i);
+          igniteStar(youCon, idx);               // forge a new star + line draws on
+          // after each, re-check the leader from DATA
+          const newLeader = leaderId();
+          if(newLeader!==curLeader){
+            // OVERTAKE — fire the nova
+            const prev=curLeader;
+            curLeader=newLeader;
+            setTimeout(()=>fireOvertake(prev,newLeader), 260);
+          }
+        }
+      });
+    });
+  }
+
+  function fireOvertake(prevId, newId){
+    // 1) chain-reaction nova down the new leader's constellation
+    novaCascade(newId);
+    // 2) dim former leader ~15%
+    animTo(D[prevId],'dim', 0.85, 1200, easeInOut);
+    // 3) recenter sky gravity on new leader (slow camera drift)
+    setCam(); // gravityCenter now favours the new leader because its pts rose
+    // 4) banner
+    novaName.textContent = D[newId].name;
+    novaCap.classList.add('show');
+    setTimeout(()=>novaCap.classList.remove('show'), 3400);
+  }
+
+  timeline();
+  // when the page is hidden, pause raf to save battery; resume on return
+  document.addEventListener('visibilitychange', ()=>{
+    if(document.hidden){ cancelAnimationFrame(rafId); }
+    else { t0=performance.now(); rafId=requestAnimationFrame(draw); }
+  });
+
+})();
+</script>
+</body>
+</html>

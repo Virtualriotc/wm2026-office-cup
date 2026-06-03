@@ -1,0 +1,434 @@
+// ============================================================================
+// COPY — every user-facing string in one typed place.
+//
+// Seeded from docs/copy-deck.md, voiced for the brighter, friendly
+// neo-brutalist tone (witty colleague who runs the pool; warm, confident, a
+// little cheeky — never corporate, never childish). The copy agent will
+// REFINE the values; the KEY SHAPE below is the stable contract — keep keys.
+//
+// i18n: `en` is the only locale now. The structure is locale-keyed so a `de`
+// locale can be dropped in later without touching call sites: read via
+// `copy()` (defaults to `en`).
+//
+// ----------------------------------------------------------------------------
+// VOICE NOTE — read before changing any string.
+//
+// Who's talking: the witty colleague who runs the office pool. Warm, confident,
+// a little cheeky. Never corporate, never childish, never trying too hard.
+//
+// Four standards, every string: PURPOSEFUL, CONCISE, CONVERSATIONAL, CLEAR.
+//   • Sentence case everywhere (not Title Case).
+//   • Buttons: a verb leads, 2–4 words ("Pick my matches", not "Submit").
+//   • Front-load the point. Say the concrete thing first ("Picks close in 3h").
+//   • Never blame the user — not in errors, not in results ("Not your day",
+//     never "you were wrong").
+//   • "You", never "users". One exclamation mark per screen, max.
+//   • Say it out loud — if you wouldn't say it to a colleague, rewrite it.
+//
+// Compliance strings (disclaimers.*) keep their legal substance verbatim in
+// meaning — voiced, not gutted. Still need a German translation + lawyer check
+// before launch. Don't trim the protective clauses to sound snappier.
+// ----------------------------------------------------------------------------
+// ============================================================================
+
+export type Locale = "en";
+
+export interface CopyShape {
+  /** Cross-app chrome: nav, the unofficial/no-betting tag, brand. */
+  app: {
+    brand: string;
+    tagline: string;
+    unofficialTag: string;
+    nav: {
+      predict: string;
+      scoreboard: string;
+      organizer: string;
+      account: string;
+    };
+    heartbeatUpdatedNow: string;
+    heartbeatUpdatedAgo: string; // "{time} ago"
+  };
+
+  /** Landing / hero. */
+  hero: {
+    eyebrow: string;
+    titleLine1: string;
+    titleLine2: string;
+    subhead: string;
+    primaryCta: string;
+    ctaHelper: string;
+    haveCodeCta: string;
+    disclaimer: string;
+    scrollCue: string;
+    steps: {
+      createAccount: string;
+      saveCode: string;
+      pickMatches: string;
+      watchScores: string;
+    };
+  };
+
+  /** Join / create account. */
+  join: {
+    eyebrow: string;
+    title: string;
+    subhead: string;
+    nameLabel: string;
+    namePlaceholder: string;
+    nameHelper: string;
+    departmentLabel: string;
+    departmentHelper: string;
+    /** The combobox sentinel option that switches to a free-text field. */
+    departmentAddOption: string;
+    /** Label for the "type a brand-new department" text field. */
+    newDepartmentLabel: string;
+    newDepartmentPlaceholder: string;
+    newDepartmentHelper: string;
+    /** Inline action to drop the typed field and go back to the picker. */
+    departmentBackToList: string;
+    consentCheckbox: string;
+    prizeLine: string;
+    primaryCta: string;
+    privacyFooter: string;
+  };
+
+  /** The code shown once after joining, and the paste-to-continue flow. */
+  code: {
+    eyebrow: string;
+    getMyCodeCta: string;
+    savedTitle: string;
+    savedSubhead: string;
+    copyCta: string;
+    copied: string;
+    continueCta: string;
+    pasteTitle: string;
+    pasteSubhead: string;
+    pasteLabel: string;
+    pastePlaceholder: string;
+    pasteCta: string;
+  };
+
+  /** Pick / predict surface. */
+  predict: {
+    title: string;
+    matchdayHeader: string; // "Matchday {n} · {count} games"
+    instruction: string;
+    lockOpen: string; // "Locks in {time}"
+    lockClosed: string;
+    tapAWinner: string;
+    drawLabel: string;
+    resultCorrect: string; // "Nailed it · +{points}"
+    resultWrong: string;
+    resultMissed: string;
+    saveCta: string;
+    saveSuccess: string;
+    saveError: string;
+    postLockNote: string;
+    consensusLabel: string; // "Office picked"
+    empty: string;
+  };
+
+  /** The department race (home / hero of the scoreboard). */
+  race: {
+    header: string;
+    sectionEyebrow: string;
+    roundNote: string; // "Matchday {n} is in"
+    biggestMover: string; // "{dept} jumped {n} — mover of the week"
+    topTipsterTitle: string;
+    yourRankLabel: string;
+    yourRankValue: string; // "#{rank} · up {delta}"
+    yourRankNote: string; // "Top {pct}% — keep climbing"
+    shareCta: string;
+    fairnessNote: string;
+  };
+
+  /** Relative leaderboard. */
+  leaderboard: {
+    tabYou: string;
+    tabDepartments: string;
+    withinReach: string;
+    topOfCup: string;
+    behindNote: string; // "{points} points behind {name}. Catchable."
+    departmentsFooter: string;
+    empty: string;
+  };
+
+  /** Share card. */
+  share: {
+    cardHeadline: string;
+    cardSub: string;
+    primaryCta: string;
+    secondaryCta: string;
+  };
+
+  /** Organizer surface (auto results + manual overrides). */
+  organizer: {
+    title: string;
+    subhead: string;
+    codeGateLabel: string;
+    codeGatePlaceholder: string;
+    codeGateCta: string;
+    /** "Last synced {time} · {count} from the feed" heartbeat line. */
+    lastSyncedLabel: string; // "Last synced {time}"
+    feedCountLabel: string; // "{count} from the feed"
+    neverSynced: string;
+    syncNowCta: string;
+    syncingLabel: string;
+    /** The auto-result line per match. "Auto result: {outcome}". */
+    autoResult: string; // "Auto result: {outcome}"
+    /** Shown when a match has no recorded result yet. */
+    noResultYet: string;
+    /** Shown when the organizer's override is the live value. */
+    overrideActive: string; // "Your override: {outcome}"
+    /** The override action label per match. */
+    overrideLabel: string;
+    overrideCta: string;
+    overrideSavedToast: string; // "Override saved. Tables updating."
+    recomputeNote: string;
+  };
+
+  /** Notifications (two by design). */
+  notifications: {
+    preLockTitle: string;
+    preLockBody: string; // "You haven't called Matchday {n} yet. Two taps and you're set."
+    recapTitle: string; // "Matchday {n} is scored"
+    recapBody: string; // "You went {hits} of {total} and climbed to #{rank}. See the new table."
+  };
+
+  /** Disclaimers / compliance (legal substance preserved; needs DE + lawyer). */
+  disclaimers: {
+    banner: string;
+    consent: string;
+    prize: string;
+    privacyFooter: string;
+    footer: string;
+  };
+
+  /** Errors. Never blame the user. */
+  errors: {
+    generic: string;
+    nameTaken: string;
+    departmentInvalid: string;
+    invalidCode: string;
+    pickAfterLock: string;
+    notOrganizer: string;
+    tooManyAttempts: string;
+  };
+
+  /** Empty states. */
+  empty: {
+    noMatchesOpen: string;
+    noResultsYet: string;
+    noLeaderboardYet: string;
+  };
+}
+
+const en: CopyShape = {
+  app: {
+    brand: "WM 2026 Office Cup",
+    tagline: "Call the winners. Carry your team up the table.",
+    unofficialTag: "UNOFFICIAL OFFICE GAME · NO BETTING",
+    nav: {
+      predict: "Predict",
+      scoreboard: "Scoreboard",
+      organizer: "Organizer",
+      account: "Account",
+    },
+    heartbeatUpdatedNow: "Updated just now",
+    heartbeatUpdatedAgo: "Updated {time} ago",
+  },
+
+  hero: {
+    eyebrow: "11 Jun – 19 Jul · 48 teams · 104 games",
+    titleLine1: "WM 2026",
+    titleLine2: "OFFICE CUP",
+    subhead:
+      "Call the winners. Carry your team up the table. Two minutes a round.",
+    primaryCta: "Create your account",
+    ctaHelper: "60 seconds. No password, no email.",
+    haveCodeCta: "Got a code? Paste to continue",
+    disclaimer:
+      "A private game by colleagues, for colleagues. Not an Enpal project, just for the bragging rights.",
+    scrollCue: "See the race",
+    steps: {
+      createAccount: "Create your account",
+      saveCode: "Save your code",
+      pickMatches: "Pick your matches",
+      watchScores: "Watch the scores roll in",
+    },
+  },
+
+  join: {
+    eyebrow: "New here?",
+    title: "Grab your spot",
+    subhead: "No password, no email. Just a name and your team.",
+    nameLabel: "What should we call you?",
+    namePlaceholder: "e.g. Max Stegemann",
+    nameHelper: "A nickname's perfect. Keep it work-friendly.",
+    departmentLabel: "Your department",
+    departmentHelper: "This is your team in the race. Not listed? Add it below.",
+    departmentAddOption: "+ Add a new department",
+    newDepartmentLabel: "Name your department",
+    newDepartmentPlaceholder: "e.g. Energy Growth",
+    newDepartmentHelper: "Start a new lane. Your teammates can join it after you.",
+    departmentBackToList: "Pick from the list instead",
+    consentCheckbox:
+      "I'm in for the fun of it. I get that this is a private game, not run by or the responsibility of Enpal. I'm 18 or over, happy to show my name and department on the board, and I can leave anytime.",
+    prizeLine:
+      "No entry fee, no stakes, just bragging rights. The sharpest tipsters get a small thank-you gift at the end.",
+    primaryCta: "Pick my matches",
+    privacyFooter:
+      "We keep your nickname, department, picks, and a private code. Nothing else: no email, no tracking. All deleted after the final.",
+  },
+
+  code: {
+    eyebrow: "Have a code?",
+    getMyCodeCta: "Get my code",
+    savedTitle: "Here's your code",
+    savedSubhead:
+      "This is how you get back in. Save it somewhere safe. We can only show it once.",
+    copyCta: "Copy my code",
+    copied: "Copied",
+    continueCta: "Got it, let's pick",
+    pasteTitle: "Welcome back",
+    pasteSubhead: "Paste the code you saved and pick up where you left off.",
+    pasteLabel: "Your code",
+    pastePlaceholder: "MP-XXXX-XXXX-XXXX",
+    pasteCta: "Continue",
+  },
+
+  predict: {
+    title: "Your picks",
+    matchdayHeader: "Matchday {n} · {count} games",
+    instruction: "Tap who wins. Draws count too.",
+    lockOpen: "Locks in {time}",
+    lockClosed: "Locked at kickoff",
+    tapAWinner: "Tap a winner",
+    drawLabel: "Draw",
+    resultCorrect: "Nailed it · +{points}",
+    resultWrong: "Not your day",
+    resultMissed: "Missed this one",
+    saveCta: "Save my picks",
+    saveSuccess: "Picks locked in. Good luck out there.",
+    saveError:
+      "Couldn't save your picks. Check your connection, then tap save again.",
+    postLockNote: "Picks lock at kickoff and go public. No edits after that.",
+    consensusLabel: "Office picked",
+    empty: "All caught up. Your next picks open after tonight's games.",
+  },
+
+  race: {
+    header: "The race",
+    sectionEyebrow: "Department standings",
+    roundNote: "Matchday {n} is in",
+    biggestMover: "{dept} jumped {n} spots — mover of the week",
+    topTipsterTitle: "This week's sharpest",
+    yourRankLabel: "Your rank",
+    yourRankValue: "#{rank} · up {delta}",
+    yourRankNote: "Top {pct}% and climbing",
+    shareCta: "Share the table",
+    fairnessNote:
+      "Score is average points per active player, so small teams compete fairly.",
+  },
+
+  leaderboard: {
+    tabYou: "You",
+    tabDepartments: "Departments",
+    withinReach: "Within reach",
+    topOfCup: "Top of the cup",
+    behindNote: "{points} points behind {name}. Catchable.",
+    departmentsFooter:
+      "Score is average points per active player, so small teams compete fairly.",
+    empty: "No games scored yet. The table wakes up after the first whistle.",
+  },
+
+  share: {
+    cardHeadline: "{dept} leads the office",
+    cardSub: "{challenger} is charging. Who's catching them?",
+    primaryCta: "Send to your team channel",
+    secondaryCta: "Copy image",
+  },
+
+  organizer: {
+    title: "Results & overrides",
+    subhead:
+      "Results land automatically from the feed. You only step in to fix one the feed got wrong or hasn't called.",
+    codeGateLabel: "Organizer code",
+    codeGatePlaceholder: "MP-XXXX-XXXX-XXXX",
+    codeGateCta: "Unlock",
+    lastSyncedLabel: "Last synced {time}",
+    feedCountLabel: "{count} from the feed",
+    neverSynced: "No sync yet this session",
+    syncNowCta: "Sync now",
+    syncingLabel: "Syncing…",
+    autoResult: "Auto result: {outcome}",
+    noResultYet: "No result yet — the feed will fill this in.",
+    overrideActive: "Your override: {outcome}",
+    overrideLabel: "Override the call",
+    overrideCta: "Override",
+    overrideSavedToast: "Override saved. Tables updating now.",
+    recomputeNote:
+      "Overrides win over the feed and recompute every leaderboard. Safe to redo anytime.",
+  },
+
+  notifications: {
+    preLockTitle: "Picks close in 3 hours",
+    preLockBody: "You haven't called Matchday {n} yet. Two taps and you're set.",
+    recapTitle: "Matchday {n} is scored",
+    recapBody: "You went {hits} of {total} and you're now #{rank}. See the new table.",
+  },
+
+  disclaimers: {
+    banner:
+      "A friendly World Cup prediction game by colleagues, for colleagues. A private, personal project, not organised or endorsed by Enpal. Just for fun, and joining is completely voluntary.",
+    consent:
+      "I'm joining for fun and on my own. I get that this is a private project, not an Enpal thing, and that Enpal isn't involved or responsible. I'm 18 or older. I'm happy with my chosen name and department on the leaderboard, and I know I can ask to be removed any time.",
+    prize:
+      "No entry fee, no stakes, pure football bragging rights. At the end, the organiser will arrange a small thank-you gift for the top predictors. A token of fun, nothing more.",
+    privacyFooter:
+      "We store only the name and department you pick (a nickname is fine), your predictions, and a private code. No email, no password, no tracking. Everything is deleted shortly after the final.",
+    footer:
+      "WM 2026 Office Cup · a private, just-for-fun game · not affiliated with or endorsed by Enpal · no entry fee, no stakes.",
+  },
+
+  errors: {
+    generic: "That didn't go through. Give it another tap in a moment.",
+    nameTaken: "That name's taken. Try another one?",
+    departmentInvalid: "Give your department a short name (up to 40 characters).",
+    invalidCode: "That code doesn't look right. Check it and try again.",
+    pickAfterLock:
+      "This match is locked. Kickoff's been and gone, so your earlier pick stands.",
+    notOrganizer: "That code doesn't open the organizer screen. Need one? Ask the organiser.",
+    tooManyAttempts: "Too many tries just now. Take a breath and try again in a minute.",
+  },
+
+  empty: {
+    noMatchesOpen: "All caught up. Your next picks open after tonight's games.",
+    noResultsYet: "No results in yet. Tables wake up after the first whistle.",
+    noLeaderboardYet:
+      "No games scored yet. The table wakes up after the first whistle.",
+  },
+};
+
+const LOCALES: Record<Locale, CopyShape> = { en };
+
+/** The default (English) copy. Import this directly in components for now. */
+export const COPY: CopyShape = en;
+
+/** Locale-aware accessor for when `de` lands. Falls back to `en`. */
+export function copy(locale: Locale = "en"): CopyShape {
+  return LOCALES[locale] ?? en;
+}
+
+/**
+ * Tiny token interpolation: fill `{name}` placeholders from a map.
+ * e.g. fill(COPY.predict.matchdayHeader, { n: 4, count: 4 }).
+ */
+export function fill(
+  template: string,
+  values: Record<string, string | number>,
+): string {
+  return template.replace(/\{(\w+)\}/g, (_, key: string) =>
+    key in values ? String(values[key]) : `{${key}}`,
+  );
+}

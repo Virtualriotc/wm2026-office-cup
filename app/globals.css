@@ -1,0 +1,335 @@
+@import "tailwindcss";
+
+/* ============================================================================
+   WM 2026 OFFICE CUP — Design system: "Friendly Neo-Brutalist Stadium"
+   Light, bright, bold, fun-but-not-childish. The full token set lives here as
+   CSS variables so every component reads from one source of truth.
+
+   Signature: cream surfaces, a thick 2.5px ink border, a HARD offset shadow
+   (no blur), heavy royal-blue display type with a yellow offset shadow, and
+   buttons whose hard shadow COLLAPSES on press for a tactile push.
+   ============================================================================ */
+
+@theme {
+  /* -- palette -- */
+  --color-sky: #a9dcf0;
+  --color-haze: #eaf3d8;
+  --color-pitch: #a8e0a0;
+  --color-cream: #fbf7ec;
+  --color-ink: #14130f;
+  --color-royal: #2f4be0;
+  --color-yellow: #ffd23f;
+  /* Darkened from #36a85b so WHITE text on the green primary button / selected
+     pick option clears the WCAG AA 4.5:1 floor (was 3.04:1, now ~4.9:1) while
+     keeping the bright pitch-green character. */
+  --color-green: #258043;
+  --color-green-ink: #0a2a16;
+  --color-coral: #ff7a59;
+  --color-muted: #6b675c;
+
+  /* -- type stacks. The *-loaded vars are injected by next/font on <html>
+        (Baloo 2 display, Hanken Grotesk body); the rest are system fallbacks
+        so the look holds even before/without the webfont. -- */
+  --font-display: var(--font-display-loaded), "Quicksand", "Trebuchet MS",
+    "Verdana Rounded", system-ui, sans-serif;
+  --font-body: var(--font-body-loaded), "Helvetica Neue", system-ui,
+    -apple-system, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+}
+
+:root {
+  /* neo-brutalist tokens */
+  --border-ink: 2.5px solid var(--color-ink);
+  /* thinner ink border for small chips/badges (was ad-hoc 1.5px/2px) */
+  --border-ink-thin: 2px solid var(--color-ink);
+  --radius-card: 16px;
+  --radius-pill: 999px;
+  --shadow-hard: 6px 6px 0 var(--color-ink);
+  --shadow-hard-sm: 4px 4px 0 var(--color-ink);
+  --shadow-hard-lg: 8px 8px 0 var(--color-ink);
+  /* yellow offset behind display headlines — em-based so it scales with the
+     type size (a 6rem headline gets a proportionally bigger offset than a
+     1.4rem one). */
+  --display-shadow: 0.05em 0.05em 0 var(--color-yellow);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.5, 1);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  line-height: 1.5;
+  /* sky -> haze -> pitch vertical gradient, fixed so it reads as a backdrop */
+  background:
+    linear-gradient(
+      to bottom,
+      var(--color-sky) 0%,
+      var(--color-haze) 46%,
+      var(--color-pitch) 100%
+    )
+    fixed;
+  background-attachment: fixed;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* faint horizon line + subtle vertical pitch stripes layered over the bg */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  /* vertical pitch stripes, only over the lower (pitch) band */
+  background-image: repeating-linear-gradient(
+    90deg,
+    rgba(20, 19, 15, 0.035) 0,
+    rgba(20, 19, 15, 0.035) 2px,
+    transparent 2px,
+    transparent 64px
+  );
+  -webkit-mask-image: linear-gradient(to bottom, transparent 52%, #000 100%);
+  mask-image: linear-gradient(to bottom, transparent 52%, #000 100%);
+}
+body::after {
+  content: "";
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 46%;
+  height: 2px;
+  z-index: 0;
+  pointer-events: none;
+  background: rgba(20, 19, 15, 0.12);
+}
+
+/* keep app content above the backdrop layers */
+#app-root {
+  position: relative;
+  z-index: 1;
+}
+
+/* -- display headline helper: heavy royal blue + yellow offset shadow -- */
+.display {
+  font-family: var(--font-display);
+  font-weight: 800;
+  color: var(--color-royal);
+  letter-spacing: -0.01em;
+  line-height: 0.92;
+  text-shadow: var(--display-shadow);
+}
+
+/* -- tabular numerals for points / ranks -- */
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* ----------------------------------------------------------------------------
+   Base component classes. The React primitives in components/ui compose these;
+   keeping the look in CSS keeps the design system legible and themeable.
+   --------------------------------------------------------------------------- */
+
+/* CARD: cream surface, thick ink border, hard offset shadow */
+.nb-card {
+  background: var(--color-cream);
+  border: var(--border-ink);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-hard);
+}
+
+/* PILL: nav items + tags */
+.nb-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--color-cream);
+  border: var(--border-ink);
+  border-radius: var(--radius-pill);
+  padding: 0.4rem 0.9rem;
+  font-weight: 700;
+  font-size: 0.8rem;
+  line-height: 1;
+}
+
+/* PILL — selectable / pressable: same tactile language as .nb-btn. Carries a
+   small hard shadow that lifts on hover and COLLAPSES on press, so an
+   active/clickable pill (leaderboard tabs, selectable chips) feels like the
+   buttons rather than a flat tag. */
+.nb-pill--pressable {
+  box-shadow: var(--shadow-hard-sm);
+  transition:
+    transform 0.08s var(--ease-out),
+    box-shadow 0.08s var(--ease-out);
+  user-select: none;
+}
+.nb-pill--pressable:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: var(--shadow-hard);
+}
+.nb-pill--pressable:active {
+  transform: translate(4px, 4px);
+  box-shadow: 0 0 0 var(--color-ink);
+}
+.nb-pill--pressable:focus-visible {
+  outline: 3px solid var(--color-royal);
+  outline-offset: 2px;
+}
+
+/* TAG: small uppercase label, e.g. "UNOFFICIAL · NO BETTING" */
+.nb-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: var(--border-ink);
+  border-radius: var(--radius-pill);
+  padding: 0.3rem 0.7rem;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: var(--color-yellow);
+}
+
+/* STEP BADGE: numbered yellow circle with an ink border */
+.nb-step {
+  display: inline-grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: var(--border-ink);
+  border-radius: var(--radius-pill);
+  background: var(--color-yellow);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.1rem;
+  box-shadow: var(--shadow-hard-sm);
+}
+
+/* BUTTONS: ink border + hard shadow; on press the shadow COLLAPSES (tactile) */
+.nb-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: var(--border-ink);
+  border-radius: 12px;
+  padding: 0.75rem 1.25rem;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  box-shadow: var(--shadow-hard);
+  /* animate only transform/box-shadow for cheap, smooth presses */
+  transition:
+    transform 0.08s var(--ease-out),
+    box-shadow 0.08s var(--ease-out);
+  user-select: none;
+}
+.nb-btn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: var(--shadow-hard-lg);
+}
+/* the push: drop into the shadow's place, shadow gone */
+.nb-btn:active {
+  transform: translate(6px, 6px);
+  box-shadow: 0 0 0 var(--color-ink);
+}
+.nb-btn:focus-visible {
+  outline: 3px solid var(--color-royal);
+  outline-offset: 2px;
+}
+
+.nb-btn--primary {
+  background: var(--color-green);
+  color: #fff;
+}
+.nb-btn--secondary {
+  background: var(--color-cream);
+  color: var(--color-ink);
+}
+
+/* FIELD / INPUT: cream, ink border, hard shadow that collapses on focus */
+.nb-input {
+  width: 100%;
+  background: var(--color-cream);
+  border: var(--border-ink);
+  border-radius: 12px;
+  padding: 0.7rem 0.9rem;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  color: var(--color-ink);
+  box-shadow: var(--shadow-hard-sm);
+  transition:
+    transform 0.08s var(--ease-out),
+    box-shadow 0.08s var(--ease-out);
+}
+/* Placeholder contrast (WCAG AA). Tailwind v4 preflight sets every
+   `::placeholder` to `color-mix(in oklab, currentcolor 50%, transparent)`,
+   i.e. ink at ~50% — which renders as a light grey (~1.5:1) that fails the
+   4.5:1 floor. Override BOTH the bare pseudo and the .nb-input one with the
+   accessible muted ink at full opacity so the contrast is sound and axe and
+   the browser agree on the rendered colour. */
+::placeholder,
+.nb-input::placeholder {
+  /* !important so the resolved colour is unambiguously the accessible muted ink
+     — Tailwind's preflight color-mix lives in a @supports block whose value
+     some contrast resolvers (axe-core) pick up over an unlayered override,
+     reporting a phantom ~2:1 ratio even though the browser renders this. */
+  color: var(--color-muted) !important;
+  opacity: 1 !important;
+}
+.nb-input:focus {
+  outline: none;
+  transform: translate(4px, 4px);
+  box-shadow: 0 0 0 var(--color-ink);
+}
+
+/* SELECT: strip the native chrome and paint our own ink chevron so it matches
+   the brutalist inputs. Applies to <Select> (.nb-select) and to any existing
+   select rendered with the .nb-input class. */
+.nb-select,
+select.nb-input {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  /* room for the chevron + keep the native arrow from coming back on some UAs */
+  padding-right: 2.5rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9' viewBox='0 0 14 9' fill='none'%3E%3Cpath d='M1.5 1.5 7 7l5.5-5.5' stroke='%2314130f' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.95rem center;
+  background-size: 0.85rem auto;
+}
+/* hide the legacy IE/Edge dropdown arrow */
+.nb-select::-ms-expand,
+select.nb-input::-ms-expand {
+  display: none;
+}
+
+/* ----------------------------------------------------------------------------
+   Reduced-motion base: kill non-essential animation app-wide. Motion
+   components ALSO branch on this in JS; this is the CSS safety net.
+   --------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -1,0 +1,186 @@
+{
+  "leagues": [
+    {
+      "slug": "fifa.world",
+      "name": "FIFA World Cup"
+    }
+  ],
+  "events": [
+    {
+      "id": "633794",
+      "date": "2022-11-22T10:00Z",
+      "name": "Saudi Arabia at Argentina",
+      "shortName": "KSA @ ARG",
+      "season": {
+        "year": 2022,
+        "slug": "group-stage"
+      },
+      "competitions": [
+        {
+          "status": {
+            "type": {
+              "state": "post",
+              "completed": true,
+              "detail": "FT",
+              "shortDetail": "FT"
+            }
+          },
+          "competitors": [
+            {
+              "homeAway": "home",
+              "winner": false,
+              "score": "1",
+              "team": {
+                "displayName": "Argentina",
+                "abbreviation": "ARG",
+                "shortDisplayName": "Argentina"
+              }
+            },
+            {
+              "homeAway": "away",
+              "winner": true,
+              "score": "2",
+              "team": {
+                "displayName": "Saudi Arabia",
+                "abbreviation": "KSA",
+                "shortDisplayName": "Saudi Arabia"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "633791",
+      "date": "2022-11-22T13:00Z",
+      "name": "Tunisia at Denmark",
+      "shortName": "TUN @ DEN",
+      "season": {
+        "year": 2022,
+        "slug": "group-stage"
+      },
+      "competitions": [
+        {
+          "status": {
+            "type": {
+              "state": "post",
+              "completed": true,
+              "detail": "FT",
+              "shortDetail": "FT"
+            }
+          },
+          "competitors": [
+            {
+              "homeAway": "home",
+              "winner": false,
+              "score": "0",
+              "team": {
+                "displayName": "Denmark",
+                "abbreviation": "DEN",
+                "shortDisplayName": "Denmark"
+              }
+            },
+            {
+              "homeAway": "away",
+              "winner": false,
+              "score": "0",
+              "team": {
+                "displayName": "Tunisia",
+                "abbreviation": "TUN",
+                "shortDisplayName": "Tunisia"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "633793",
+      "date": "2022-11-22T16:00Z",
+      "name": "Poland at Mexico",
+      "shortName": "POL @ MEX",
+      "season": {
+        "year": 2022,
+        "slug": "group-stage"
+      },
+      "competitions": [
+        {
+          "status": {
+            "type": {
+              "state": "post",
+              "completed": true,
+              "detail": "FT",
+              "shortDetail": "FT"
+            }
+          },
+          "competitors": [
+            {
+              "homeAway": "home",
+              "winner": false,
+              "score": "0",
+              "team": {
+                "displayName": "Mexico",
+                "abbreviation": "MEX",
+                "shortDisplayName": "Mexico"
+              }
+            },
+            {
+              "homeAway": "away",
+              "winner": false,
+              "score": "0",
+              "team": {
+                "displayName": "Poland",
+                "abbreviation": "POL",
+                "shortDisplayName": "Poland"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "633792",
+      "date": "2022-11-22T19:00Z",
+      "name": "Australia at France",
+      "shortName": "AUS @ FRA",
+      "season": {
+        "year": 2022,
+        "slug": "group-stage"
+      },
+      "competitions": [
+        {
+          "status": {
+            "type": {
+              "state": "post",
+              "completed": true,
+              "detail": "FT",
+              "shortDetail": "FT"
+            }
+          },
+          "competitors": [
+            {
+              "homeAway": "home",
+              "winner": true,
+              "score": "4",
+              "team": {
+                "displayName": "France",
+                "abbreviation": "FRA",
+                "shortDisplayName": "France"
+              }
+            },
+            {
+              "homeAway": "away",
+              "winner": false,
+              "score": "1",
+              "team": {
+                "displayName": "Australia",
+                "abbreviation": "AUS",
+                "shortDisplayName": "Australia"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

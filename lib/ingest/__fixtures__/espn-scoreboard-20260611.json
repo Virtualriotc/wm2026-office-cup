@@ -1,0 +1,98 @@
+{
+  "leagues": [
+    {
+      "slug": "fifa.world",
+      "name": "FIFA World Cup"
+    }
+  ],
+  "events": [
+    {
+      "id": "760415",
+      "date": "2026-06-11T19:00Z",
+      "name": "South Africa at Mexico",
+      "shortName": "RSA @ MEX",
+      "season": {
+        "year": 2026,
+        "slug": "group-stage"
+      },
+      "competitions": [
+        {
+          "status": {
+            "type": {
+              "state": "pre",
+              "completed": false,
+              "detail": "Thu, June 11th at 3:00 PM EDT",
+              "shortDetail": "Scheduled"
+            }
+          },
+          "competitors": [
+            {
+              "homeAway": "home",
+              "winner": false,
+              "score": "0",
+              "team": {
+                "displayName": "Mexico",
+                "abbreviation": "MEX",
+                "shortDisplayName": "Mexico"
+              }
+            },
+            {
+              "homeAway": "away",
+              "winner": false,
+              "score": "0",
+              "team": {
+                "displayName": "South Africa",
+                "abbreviation": "RSA",
+                "shortDisplayName": "South Africa"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "760414",
+      "date": "2026-06-12T02:00Z",
+      "name": "Czechia at South Korea",
+      "shortName": "CZE @ KOR",
+      "season": {
+        "year": 2026,
+        "slug": "group-stage"
+      },
+      "competitions": [
+        {
+          "status": {
+            "type": {
+              "state": "pre",
+              "completed": false,
+              "detail": "Thu, June 11th at 10:00 PM EDT",
+              "shortDetail": "Scheduled"
+            }
+          },
+          "competitors": [
+            {
+              "homeAway": "home",
+              "winner": false,
+              "score": "0",
+              "team": {
+                "displayName": "South Korea",
+                "abbreviation": "KOR",
+                "shortDisplayName": "South Korea"
+              }
+            },
+            {
+              "homeAway": "away",
+              "winner": false,
+              "score": "0",
+              "team": {
+                "displayName": "Czechia",
+                "abbreviation": "CZE",
+                "shortDisplayName": "Czechia"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

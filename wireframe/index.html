@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>WM 2026 Office Cup — Wireframe</title>
+<style>
+  /* ============ TOKENS ============ */
+  :root{
+    --bg:#0A0E1A;            /* night stadium */
+    --bg2:#0E1424;
+    --card:#141B2E;
+    --card2:#1A2236;
+    --line:#26304a;
+    --ink:#F4F7FF;
+    --muted:#8A93AE;
+    --green:#19E68C;        /* electric pitch */
+    --green-d:#0FB46C;
+    --gold:#FFC93C;         /* championship */
+    --coral:#FF4D6D;        /* energy / overtake */
+    --blue:#4D8DFF;
+    --r:18px;
+    --ease:cubic-bezier(.22,1,.36,1);
+    --spring:cubic-bezier(.34,1.56,.64,1);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  :focus-visible{outline:2px solid var(--green);outline-offset:2px;border-radius:6px}
+  html,body{margin:0;height:100%}
+  body{
+    background:
+      radial-gradient(1200px 600px at 50% -10%, #1b2440 0%, transparent 60%),
+      #15161B;
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    color:var(--ink);
+    display:grid;place-items:center;min-height:100dvh;padding:24px;gap:18px;
+  }
+  .stage-label{position:fixed;top:14px;left:0;right:0;text-align:center;color:#7c87a3;font-size:12px;letter-spacing:.14em;text-transform:uppercase}
+
+  /* ============ PHONE FRAME ============ */
+  .phone{
+    width:390px;aspect-ratio:390/844;max-height:90dvh;
+    background:var(--bg);border-radius:42px;position:relative;overflow:hidden;
+    box-shadow:0 0 0 11px #05070d,0 0 0 13px #232a3d,0 40px 90px -20px rgba(0,0,0,.8);
+  }
+  .notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:128px;height:26px;background:#05070d;border-radius:0 0 16px 16px;z-index:60}
+  .screen{position:absolute;inset:0;display:flex;flex-direction:column;opacity:0;visibility:hidden;transition:opacity .42s var(--ease);overflow:hidden}
+  .screen.active{opacity:1;visibility:visible}
+  .scroll{flex:1;overflow:auto;padding:54px 18px 96px;scrollbar-width:none}
+  .scroll::-webkit-scrollbar{display:none}
+  #home .scroll,#pick .scroll,#ranks .scroll{padding-top:86px}
+
+  h1,h2,h3{margin:0}
+  .eyebrow{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--green);font-weight:700}
+  .muted{color:var(--muted)}
+  .pill{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;font-size:11.5px;font-weight:600}
+
+  /* ============ LANDING ============ */
+  #landing .scroll{padding:0;justify-content:flex-end}
+  .hero{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:0 26px;overflow:hidden}
+  .pitch-glow{position:absolute;bottom:-30%;left:50%;transform:translateX(-50%);width:520px;height:520px;border-radius:50%;
+    background:radial-gradient(circle,rgba(25,230,140,.22),transparent 62%);filter:blur(6px)}
+  .confetti-strip{position:absolute;inset:0;pointer-events:none}
+  .kicker{font-size:12px;letter-spacing:.34em;text-transform:uppercase;color:var(--gold);font-weight:700;margin-bottom:14px;opacity:0;animation:fade .8s .15s var(--ease) forwards}
+  .title{font-family:"Arial Narrow","Helvetica Neue",system-ui;font-weight:900;font-stretch:condensed;line-height:.86;letter-spacing:-.01em;text-transform:uppercase}
+  .title .l{display:block;overflow:hidden}
+  .title .l span{display:block;transform:translateY(110%);}
+  .title .big{font-size:74px}
+  .title .out{-webkit-text-stroke:2px var(--green);color:transparent;font-size:70px}
+  .title .cup{font-size:74px;color:var(--gold)}
+  .anim .title .l span{animation:rise .9s var(--ease) forwards}
+  .anim .title .l:nth-child(1) span{animation-delay:.20s}
+  .anim .title .l:nth-child(2) span{animation-delay:.31s}
+  .anim .title .l:nth-child(3) span{animation-delay:.42s}
+  .ball{font-size:46px;margin:22px 0 8px;display:inline-block;transform-origin:center;animation:none}
+  .anim .ball{animation:ballin 1s .5s var(--spring) both, spin 7s 1.5s linear infinite}
+  .sub{color:var(--muted);font-size:14.5px;max-width:255px;margin:6px auto 0;opacity:0}
+  .anim .sub{animation:fade .7s .8s var(--ease) forwards}
+  .land-foot{position:absolute;left:0;right:0;bottom:0;padding:22px 22px 30px;display:flex;flex-direction:column;gap:12px;opacity:0}
+  .anim .land-foot{animation:fade .7s 1s var(--ease) forwards}
+  .disclaimer{font-size:11px;color:#7c87a3;text-align:center;line-height:1.5}
+
+  /* buttons */
+  .btn{appearance:none;border:0;border-radius:14px;font-weight:750;font-size:16px;padding:16px;cursor:pointer;font-family:inherit;transition:transform .15s var(--spring),filter .2s}
+  .btn:active{transform:scale(.96)}
+  .btn-primary{background:linear-gradient(180deg,var(--green),var(--green-d));color:#06231a;box-shadow:0 10px 24px -8px rgba(25,230,140,.6)}
+  .btn-ghost{background:var(--card2);color:var(--ink);border:1px solid var(--line)}
+  .btn-block{width:100%}
+
+  /* ============ JOIN ============ */
+  .field{margin-top:18px}
+  .label{font-size:12px;font-weight:700;letter-spacing:.04em;color:var(--muted);margin-bottom:8px;text-transform:uppercase}
+  .input{width:100%;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:15px;color:var(--ink);font-size:16px;font-family:inherit;outline:none;transition:border-color .2s}
+  .input:focus{border-color:var(--green)}
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{padding:10px 14px;min-height:44px;display:inline-flex;align-items:center;border-radius:12px;background:var(--card);border:1px solid var(--line);font-size:13.5px;font-weight:600;cursor:pointer;transition:transform .15s var(--spring),border-color .2s,background .2s;color:var(--ink)}
+  .chip:active{transform:scale(.94)}
+  .chip.sel{background:rgba(25,230,140,.14);border-color:var(--green);color:var(--green)}
+  .consent{display:flex;gap:11px;align-items:flex-start;margin-top:20px;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:14px}
+  .box{flex:0 0 22px;height:22px;border-radius:7px;border:2px solid var(--line);margin-top:1px;display:grid;place-items:center;cursor:pointer;transition:all .2s var(--spring);color:#06231a;font-size:14px}
+  .box.on{background:var(--green);border-color:var(--green)}
+  .consent p{margin:0;font-size:12px;line-height:1.5;color:var(--muted)}
+
+  /* ============ HEADER (app) ============ */
+  .apphead{position:absolute;top:0;left:0;right:0;padding:42px 18px 12px;display:flex;align-items:center;justify-content:space-between;
+    background:linear-gradient(180deg,var(--bg) 60%,transparent);z-index:30}
+  .apphead .t{font-size:18px;font-weight:800;letter-spacing:-.01em}
+  .apphead .t small{color:var(--green)}
+  .heartbeat{font-size:10.5px;color:var(--muted);display:flex;align-items:center;gap:5px}
+  .dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 0 0 rgba(25,230,140,.6);animation:pulse 2.4s infinite}
+
+  /* ============ DEPARTMENT RACE ============ */
+  .racewrap{background:linear-gradient(180deg,var(--card),var(--bg2));border:1px solid var(--line);border-radius:22px;padding:16px 14px 18px;position:relative;overflow:hidden}
+  .racewrap:before{content:"";position:absolute;inset:0;background:radial-gradient(420px 160px at 80% -20%,rgba(25,230,140,.10),transparent)}
+  .race-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+  .mover{display:flex;align-items:center;gap:8px;background:rgba(255,201,60,.12);border:1px solid rgba(255,201,60,.4);color:var(--gold);border-radius:999px;padding:6px 11px;font-size:11.5px;font-weight:700;opacity:0;transform:translateY(-6px) scale(.9)}
+  .mover.show{animation:popin .5s var(--spring) forwards}
+  .lanes{position:relative;margin-top:14px;height:312px}
+  .lane{position:absolute;left:0;right:0;height:56px;display:flex;align-items:center;gap:10px;
+    transform:translateY(var(--y));transition:transform .9s var(--ease)}
+  .rankno{width:18px;text-align:center;font-weight:800;font-size:13px;color:var(--muted)}
+  .lane .name{width:74px;font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .track{position:relative;flex:1;height:34px;background:var(--card2);border-radius:10px;overflow:hidden}
+  .trail{position:absolute;left:0;top:0;bottom:0;width:100%;border-radius:10px;transform:scaleX(var(--s));transform-origin:left center;transition:transform 1s var(--ease);opacity:.92}
+  .runner{position:absolute;top:50%;left:-10px;font-size:24px;transform:translate(var(--x),-50%);transition:transform 1s var(--ease);filter:drop-shadow(0 3px 4px rgba(0,0,0,.5))}
+  .track:after{content:"";position:absolute;right:5px;top:5px;bottom:5px;border-right:2px dashed rgba(255,255,255,.22)}
+  .runner.surge{animation:surgepulse .72s ease}
+  .pts{width:30px;text-align:right;font-weight:800;font-size:14px;font-variant-numeric:tabular-nums}
+  .lane.you .name{color:var(--gold)}
+  .lane.you .track{box-shadow:0 0 0 1.5px var(--gold) inset}
+  .youtag{font-size:9px;background:var(--gold);color:#241a00;border-radius:5px;padding:1px 4px;font-weight:800;margin-left:5px;vertical-align:middle}
+
+  /* ============ MATCH PICK ============ */
+  .lockbar{display:flex;align-items:center;justify-content:space-between;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:12px 14px;margin-bottom:14px}
+  .lockbar .cd{color:var(--coral);font-weight:800;font-variant-numeric:tabular-nums}
+  .match{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:13px;margin-bottom:11px;transition:transform .2s}
+  .match .meta{font-size:10.5px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px;display:flex;justify-content:space-between}
+  .opts{display:grid;grid-template-columns:1fr 52px 1fr;gap:8px}
+  .opt{background:var(--card2);border:1.5px solid var(--line);border-radius:12px;padding:10px 6px;min-height:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;cursor:pointer;position:relative;transition:transform .14s var(--spring),border-color .18s,background .18s}
+  .opt:active{transform:scale(.95)}
+  .opt .flag{font-size:24px;display:block;line-height:1}
+  .opt .tm{font-size:12px;font-weight:700;margin-top:5px}
+  .opt.draw{display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--muted)}
+  .opt.sel{border-color:var(--green);background:rgba(25,230,140,.13);color:var(--ink)}
+  .opt.sel .tm{color:var(--green)}
+  .opt.sel:after{content:"✓";position:absolute;top:4px;right:7px;font-size:11px;font-weight:800;color:var(--green)}
+  .match.locked{opacity:.62}
+  .match.locked .opt{cursor:default}
+  .res{font-size:11px;font-weight:700;color:var(--green);display:flex;align-items:center;gap:5px}
+
+  /* ============ LEADERBOARD ============ */
+  .seg{display:flex;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:4px;margin-bottom:16px}
+  .seg button{flex:1;border:0;background:transparent;color:var(--muted);font-weight:700;font-size:13.5px;padding:10px;border-radius:9px;cursor:pointer;font-family:inherit;transition:all .2s}
+  .seg button.on{background:var(--green);color:#06231a}
+  .youcard{background:linear-gradient(135deg,#1d2740,#141b2e);border:1px solid var(--line);border-radius:20px;padding:18px;display:flex;align-items:center;gap:16px;margin-bottom:8px;position:relative;overflow:hidden}
+  .youcard:before{content:"";position:absolute;right:-30px;top:-30px;width:120px;height:120px;border-radius:50%;background:radial-gradient(circle,rgba(255,201,60,.18),transparent 70%)}
+  .bigrank{font-size:44px;font-weight:850;line-height:1;font-family:"Arial Narrow",system-ui}
+  .delta{color:var(--green);font-weight:800;font-size:13px}
+  .row{display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:13px;margin-bottom:7px;background:var(--card);border:1px solid transparent}
+  .row .r{width:24px;font-weight:800;color:var(--muted);font-variant-numeric:tabular-nums}
+  .row .av{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-size:15px;background:var(--card2)}
+  .row .nm{flex:1;font-weight:650;font-size:14px}
+  .row .sc{font-weight:800;font-variant-numeric:tabular-nums}
+  .row.me{background:rgba(255,201,60,.10);border-color:rgba(255,201,60,.45)}
+  .row.me .nm{color:var(--gold)}
+  .podium{display:flex;gap:8px;margin-bottom:14px}
+  .pod{flex:1;background:var(--card);border:1px solid var(--line);border-radius:15px;padding:12px 6px;text-align:center}
+  .pod .medal{font-size:22px}
+  .pod .pn{font-size:11.5px;font-weight:700;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pod .pp{font-size:12px;color:var(--green);font-weight:800;margin-top:2px}
+  .pod.g{transform:translateY(-6px);border-color:var(--gold)}
+  .divider{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:11px;margin:14px 2px 10px;letter-spacing:.1em;text-transform:uppercase}
+  .divider:before,.divider:after{content:"";flex:1;height:1px;background:var(--line)}
+
+  /* ============ TABBAR ============ */
+  .tabbar{position:absolute;bottom:0;left:0;right:0;height:78px;background:rgba(10,14,26,.86);backdrop-filter:blur(14px);border-top:1px solid var(--line);
+    display:flex;z-index:40;padding-bottom:10px}
+  .tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:var(--muted);cursor:pointer;font-size:10px;font-weight:600;transition:color .2s}
+  .tab .ic{font-size:21px;transition:transform .25s var(--spring)}
+  .tab.on{color:var(--green)}
+  .tab.on .ic{transform:translateY(-2px) scale(1.12)}
+
+  /* ============ SHARE SHEET ============ */
+  .sheet-bg{position:absolute;inset:0;background:rgba(0,0,0,.55);opacity:0;visibility:hidden;transition:opacity .3s;z-index:70}
+  .sheet-bg.on{opacity:1;visibility:visible}
+  .sheet{position:absolute;left:0;right:0;bottom:0;background:var(--bg2);border-radius:26px 26px 0 0;border-top:1px solid var(--line);padding:20px 18px calc(20px + env(safe-area-inset-bottom));transform:translateY(100%);transition:transform .4s var(--ease);z-index:71}
+  .sheet.on{transform:translateY(0)}
+  .grab{width:40px;height:4px;border-radius:99px;background:var(--line);margin:0 auto 16px}
+  .sharecard{border-radius:18px;padding:18px;background:
+      radial-gradient(300px 120px at 80% 0%,rgba(25,230,140,.25),transparent),
+      linear-gradient(135deg,#10243a,#0b1322);border:1px solid var(--line);text-align:center}
+  .sharecard .big{font-family:"Arial Narrow",system-ui;font-weight:800;font-size:30px;text-transform:uppercase;line-height:.95;margin:4px 0}
+
+  /* ============ MOTION ============ */
+  @keyframes rise{to{transform:translateY(0)}}
+  @keyframes fade{to{opacity:1}}
+  @keyframes ballin{0%{transform:scale(0) rotate(-40deg);opacity:0}100%{transform:scale(1) rotate(0);opacity:1}}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(25,230,140,.6)}70%{box-shadow:0 0 0 7px rgba(25,230,140,0)}100%{box-shadow:0 0 0 0 rgba(25,230,140,0)}}
+  @keyframes popin{to{opacity:1;transform:translateY(0) scale(1)}}
+  @keyframes surgepulse{0%{filter:drop-shadow(0 0 0 transparent)}45%{filter:drop-shadow(0 0 12px var(--green)) brightness(1.35)}100%{filter:drop-shadow(0 0 0 transparent)}}
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:.001s!important;animation-delay:0s!important;transition-duration:.001s!important}
+    .title .l span{transform:none}
+    .ball{animation:none!important}
+    .sub,.kicker,.land-foot,.confetti-strip{opacity:1!important}
+  }
+</style>
+</head>
+<body>
+<div class="stage-label">WM 2026 Office Cup · clickable wireframe · tap the tabs ↓</div>
+
+<div class="phone" id="phone">
+  <div class="notch"></div>
+
+  <!-- ============ LANDING ============ -->
+  <section class="screen active" id="landing">
+    <div class="hero anim" id="hero">
+      <div class="pitch-glow"></div>
+      <div class="kicker">11 Jun – 19 Jul · 48 teams</div>
+      <h1 class="title">
+        <span class="l"><span class="big">WM 2026</span></span>
+        <span class="l"><span class="out">OFFICE</span></span>
+        <span class="l"><span class="cup">CUP</span></span>
+      </h1>
+      <div class="ball">⚽️</div>
+      <p class="sub">Call every winner. Carry your department up the table. Two minutes a round.</p>
+      <div class="land-foot">
+        <button class="btn btn-primary btn-block" onclick="go('join')">Join the cup →</button>
+        <p class="disclaimer">A private game by colleagues, for colleagues.<br/>Not an Enpal project — just for the bragging rights.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ JOIN ============ -->
+  <section class="screen" id="join">
+    <div class="scroll">
+      <div class="eyebrow">Step 1 of 1</div>
+      <h2 style="font-size:27px;margin-top:6px;letter-spacing:-.02em">Grab your spot</h2>
+      <p class="muted" style="font-size:13.5px;margin-top:6px">No password, no email. Just a name and your team.</p>
+
+      <div class="field">
+        <div class="label">What should we call you?</div>
+        <input class="input" placeholder="e.g. Goal Machine" value="" />
+        <p class="muted" style="font-size:11px;margin:7px 2px 0">A nickname's perfect — keep it work-friendly.</p>
+      </div>
+
+      <div class="field">
+        <div class="label">Your department</div>
+        <div class="chips" id="deptchips"></div>
+        <p class="muted" style="font-size:11px;margin:9px 2px 0">This is your team in the race. Not listed? Pick "Other".</p>
+      </div>
+
+      <div class="consent" onclick="toggleBox(this)">
+        <div class="box" id="cbox">✓</div>
+        <p>I'm in for the fun of it. I get that this is a private game — not run by, or the responsibility of, Enpal. I'm 18 or over, happy to show my name and department on the board, and I can leave anytime.</p>
+      </div>
+
+      <button class="btn btn-primary btn-block" style="margin-top:20px" onclick="go('home');startRace()">Start picking →</button>
+      <p class="disclaimer" style="margin-top:14px">No entry fee, no stakes — just bragging rights. The top tipsters get a small thank-you gift at the end.</p>
+    </div>
+  </section>
+
+  <!-- ============ HOME / DEPARTMENT RACE ============ -->
+  <section class="screen" id="home">
+    <div class="apphead">
+      <div class="t">The <small>Race</small></div>
+      <div class="heartbeat"><span class="dot"></span> updated just now</div>
+    </div>
+    <div class="scroll">
+      <div class="race-head">
+        <div class="eyebrow">Department standings</div>
+      </div>
+      <div class="racewrap">
+        <div class="race-head">
+          <div style="font-size:13px;font-weight:700">Matchday 3 results are in</div>
+          <div class="mover" id="mover">🚀 Tech jumped 2 · mover of the week</div>
+        </div>
+        <div class="lanes" id="lanes"></div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:14px">
+        <div style="flex:1;background:var(--card);border:1px solid var(--line);border-radius:15px;padding:14px">
+          <div class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.08em">This week's sharpest</div>
+          <div style="font-weight:800;margin-top:6px;font-size:15px">🏅 Priya · CS</div>
+          <div class="muted" style="font-size:12px;margin-top:2px">7 of 8 right</div>
+        </div>
+        <div style="flex:1;background:var(--card);border:1px solid var(--line);border-radius:15px;padding:14px">
+          <div class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.08em">Your rank</div>
+          <div style="font-weight:800;margin-top:6px;font-size:15px">#12 <span class="delta">▲4</span></div>
+          <div class="muted" style="font-size:12px;margin-top:2px">top 18% · keep climbing</div>
+        </div>
+      </div>
+      <button class="btn btn-ghost btn-block" style="margin-top:14px" onclick="openSheet()">📸 Share the table</button>
+    </div>
+    <nav class="tabbar" id="tabbar1"></nav>
+  </section>
+
+  <!-- ============ PICK ============ -->
+  <section class="screen" id="pick">
+    <div class="apphead"><div class="t">Your <small>picks</small></div></div>
+    <div class="scroll">
+      <div class="lockbar">
+        <div style="font-size:13px;font-weight:700">Matchday 4 · 4 games</div>
+        <div style="font-size:12px" class="muted">locks in <span class="cd" id="cd">04:12:07</span></div>
+      </div>
+
+      <div class="match" data-m>
+        <div class="meta"><span>Group C · Thu 21:00</span><span>tap a winner</span></div>
+        <div class="opts">
+          <div class="opt" onclick="pick(this)"><span class="flag">🇧🇷</span><span class="tm">Brazil</span></div>
+          <div class="opt draw" onclick="pick(this)">DRAW</div>
+          <div class="opt" onclick="pick(this)"><span class="flag">🇭🇷</span><span class="tm">Croatia</span></div>
+        </div>
+      </div>
+
+      <div class="match" data-m>
+        <div class="meta"><span>Group D · Thu 23:00</span><span>tap a winner</span></div>
+        <div class="opts">
+          <div class="opt sel" onclick="pick(this)"><span class="flag">🇦🇷</span><span class="tm">Argentina</span></div>
+          <div class="opt draw" onclick="pick(this)">DRAW</div>
+          <div class="opt" onclick="pick(this)"><span class="flag">🇲🇽</span><span class="tm">Mexico</span></div>
+        </div>
+      </div>
+
+      <div class="match" data-m>
+        <div class="meta"><span>Group E · Fri 18:00</span><span>tap a winner</span></div>
+        <div class="opts">
+          <div class="opt" onclick="pick(this)"><span class="flag">🇫🇷</span><span class="tm">France</span></div>
+          <div class="opt draw" onclick="pick(this)">DRAW</div>
+          <div class="opt" onclick="pick(this)"><span class="flag">🇯🇵</span><span class="tm">Japan</span></div>
+        </div>
+      </div>
+
+      <div class="match locked">
+        <div class="meta"><span>Group A · played</span><span class="res">✓ locked · nailed it +1</span></div>
+        <div class="opts">
+          <div class="opt sel"><span class="flag">🇩🇪</span><span class="tm">Germany</span></div>
+          <div class="opt draw">DRAW</div>
+          <div class="opt"><span class="flag">🏴󠁧󠁢󠁳󠁣󠁴󠁿</span><span class="tm">Scotland</span></div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary btn-block" style="margin-top:6px" onclick="saved(this)">Save my picks</button>
+      <p class="muted" style="font-size:11px;text-align:center;margin-top:10px">Picks lock at kickoff and go public — no edits after that.</p>
+    </div>
+    <nav class="tabbar" id="tabbar2"></nav>
+  </section>
+
+  <!-- ============ LEADERBOARD ============ -->
+  <section class="screen" id="ranks">
+    <div class="apphead"><div class="t">The <small>table</small></div></div>
+    <div class="scroll">
+      <div class="seg">
+        <button class="on" onclick="segTo(this,'you')">You</button>
+        <button onclick="segTo(this,'dept')">Departments</button>
+      </div>
+
+      <div id="view-you">
+        <div class="youcard">
+          <div><div class="bigrank">#12</div><div class="delta">▲ 4 this round</div></div>
+          <div style="flex:1">
+            <div style="font-weight:800;font-size:16px">Goal Machine 🐐</div>
+            <div class="muted" style="font-size:12.5px;margin-top:3px">CS · 21 pts · top 18%</div>
+            <div class="muted" style="font-size:12px;margin-top:8px">3 points behind <b style="color:var(--ink)">Marco</b>. Catchable.</div>
+          </div>
+        </div>
+        <div class="divider">within reach</div>
+        <div class="row"><div class="r">10</div><div class="av">🦊</div><div class="nm">Sneaky Pete</div><div class="sc">24</div></div>
+        <div class="row"><div class="r">11</div><div class="av">🎯</div><div class="nm">Marco</div><div class="sc">23</div></div>
+        <div class="row me"><div class="r">12</div><div class="av">🐐</div><div class="nm">Goal Machine <span class="youtag">YOU</span></div><div class="sc">21</div></div>
+        <div class="row"><div class="r">13</div><div class="av">🐙</div><div class="nm">Lena</div><div class="sc">20</div></div>
+        <div class="row"><div class="r">14</div><div class="av">🦁</div><div class="nm">Big Save Dave</div><div class="sc">19</div></div>
+        <div class="divider">top of the cup</div>
+        <div class="podium">
+          <div class="pod"><div class="medal">🥈</div><div class="pn">Priya</div><div class="pp">34</div></div>
+          <div class="pod g"><div class="medal">🥇</div><div class="pn">Sofia</div><div class="pp">37</div></div>
+          <div class="pod"><div class="medal">🥉</div><div class="pn">Jonas</div><div class="pp">31</div></div>
+        </div>
+      </div>
+
+      <div id="view-dept" style="display:none">
+        <div class="row" style="background:rgba(25,230,140,.08);border-color:rgba(25,230,140,.4)"><div class="r">1</div><div class="av">💬</div><div class="nm">CS <span class="muted" style="font-weight:500">· 14 active</span></div><div class="sc">5.8</div></div>
+        <div class="row"><div class="r">2</div><div class="av">⚙️</div><div class="nm">Tech <span class="muted" style="font-weight:500">· 11 active</span></div><div class="sc">5.5</div></div>
+        <div class="row"><div class="r">3</div><div class="av">📈</div><div class="nm">Sales <span class="muted" style="font-weight:500">· 19 active</span></div><div class="sc">5.1</div></div>
+        <div class="row me"><div class="r">4</div><div class="av">🛠️</div><div class="nm">Ops <span class="youtag">YOURS</span></div><div class="sc">4.7</div></div>
+        <div class="row"><div class="r">5</div><div class="av">🧾</div><div class="nm">Invoice <span class="muted" style="font-weight:500">· 6 active</span></div><div class="sc">4.2</div></div>
+        <p class="muted" style="font-size:11px;text-align:center;margin-top:12px">Score is average points per active player — so small teams compete fairly.</p>
+      </div>
+    </div>
+    <nav class="tabbar" id="tabbar3"></nav>
+  </section>
+
+  <!-- ============ SHARE SHEET ============ -->
+  <div class="sheet-bg" id="sheetbg" onclick="closeSheet()"></div>
+  <div class="sheet" id="sheet">
+    <div class="grab"></div>
+    <div class="sharecard">
+      <div class="eyebrow" style="color:var(--gold)">WM 2026 Office Cup</div>
+      <div class="big">CS leads<br/>the office 🏆</div>
+      <p class="muted" style="font-size:12px;margin:6px 0 0">Tech is charging — +2 this week. Who's catching them?</p>
+    </div>
+    <button class="btn btn-primary btn-block" style="margin-top:16px" onclick="closeSheet()">Send to your team channel</button>
+    <button class="btn btn-ghost btn-block" style="margin-top:10px" onclick="closeSheet()">Copy image</button>
+  </div>
+</div>
+
+<script>
+  /* ---------- nav ---------- */
+  function go(id){
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    syncTabs(id);
+    if(id==='home')startRace();
+    document.querySelectorAll('.scroll').forEach(s=>s.scrollTop=0);
+  }
+  const TABS=[['home','🏁','Race'],['pick','✍️','Pick'],['ranks','🏆','Ranks'],['__share','📸','Share']];
+  function buildTabs(){
+    document.querySelectorAll('.tabbar').forEach(bar=>{
+      bar.innerHTML='';
+      TABS.forEach(([id,ic,lbl])=>{
+        const t=document.createElement('div');t.className='tab';t.dataset.id=id;
+        t.innerHTML=`<span class="ic">${ic}</span>${lbl}`;
+        t.onclick=()=> id==='__share'?openSheet():go(id);
+        bar.appendChild(t);
+      });
+    });
+  }
+  function syncTabs(id){document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.id===id));}
+
+  /* ---------- join ---------- */
+  const DEPTS=['Ops','Tech','Sales','CS','Retention','Upsell','Invoice','Marketing','People','Other'];
+  function buildDepts(){
+    const w=document.getElementById('deptchips');
+    DEPTS.forEach((d,i)=>{const c=document.createElement('div');c.className='chip'+(d==='Ops'?' sel':'');c.textContent=d;
+      c.onclick=()=>{w.querySelectorAll('.chip').forEach(x=>x.classList.remove('sel'));c.classList.add('sel');};w.appendChild(c);});
+  }
+  function toggleBox(el){el.querySelector('.box').classList.toggle('on');}
+
+  /* ---------- department race ---------- */
+  // initial points → order by points desc; then Tech overtakes Sales after a beat.
+  const ROWS=[
+    {name:'CS',  e:'💬', pts:46, you:false},
+    {name:'Sales',e:'📈', pts:41, you:false},
+    {name:'Tech',e:'⚙️', pts:39, you:false},
+    {name:'Ops', e:'🛠️', pts:33, you:true },
+    {name:'Invoice',e:'🧾',pts:28,you:false},
+  ];
+  const TRACK=150; // px the runner can travel
+  let laneEls={};
+  function buildRace(){
+    const wrap=document.getElementById('lanes');wrap.innerHTML='';laneEls={};
+    ROWS.forEach(r=>{
+      const max=ROWS[0].pts;
+      const lane=document.createElement('div');lane.className='lane'+(r.you?' you':'');
+      lane.style.setProperty('--y','0px');
+      lane.innerHTML=`<div class="rankno">–</div>
+        <div class="name">${r.name}${r.you?'<span class="youtag">YOU</span>':''}</div>
+        <div class="track"><div class="trail" style="--s:0;background:linear-gradient(90deg,${r.you?'var(--gold),#caa400':'var(--green),var(--green-d)'})"></div><div class="runner" style="--x:2px">${r.e}</div></div>
+        <div class="pts">–</div>`;
+      wrap.appendChild(lane);laneEls[r.name]=lane;
+    });
+  }
+  function paint(order,animate){
+    // anchor scale to a floor below the lowest score so the field SPREADS across the track
+    const ps=ROWS.map(r=>r.pts);
+    const hi=Math.max(...ps), lo=Math.min(...ps)*0.85, span=Math.max(1,hi-lo);
+    order.forEach((r,i)=>{
+      const lane=laneEls[r.name];
+      lane.style.setProperty('--y',(i*60)+'px');
+      const s=Math.max(.06,Math.min(1,(r.pts-lo)/span));
+      lane.querySelector('.trail').style.setProperty('--s',s.toFixed(3));
+      lane.querySelector('.runner').style.setProperty('--x',(s*TRACK)+'px');
+      lane.querySelector('.rankno').textContent=i+1;
+      const pe=lane.querySelector('.pts');
+      (animate&&!reduce)?countTo(pe,r.pts):pe.textContent=r.pts;
+    });
+  }
+  function countTo(el,target){let n=0;const step=Math.max(1,Math.round(target/22));
+    const t=setInterval(()=>{n+=step;if(n>=target){n=target;clearInterval(t);}el.textContent=n;},26);}
+  let raced=false;
+  const BASE=ROWS.map(r=>r.pts);
+  function startRace(){
+    if(raced)return; raced=true;
+    ROWS.forEach((r,i)=>r.pts=BASE[i]);   // reset so the overtake always replays cleanly
+    buildRace();
+    requestAnimationFrame(()=>{
+      let order=[...ROWS].sort((a,b)=>b.pts-a.pts);
+      setTimeout(()=>paint(order,true),140);   // fan out from the start line to current standings
+      // THE OVERTAKE: Tech surges past Sales — exaggerated so you SEE the pass
+      setTimeout(()=>{
+        ROWS.find(r=>r.name==='Tech').pts=43;
+        ROWS.find(r=>r.name==='Sales').pts=41;
+        order=[...ROWS].sort((a,b)=>b.pts-a.pts);
+        paint(order,true);
+        const tr=laneEls['Tech'].querySelector('.runner');
+        tr.classList.add('surge');setTimeout(()=>tr.classList.remove('surge'),720);
+        document.getElementById('mover').classList.add('show');
+        burst();
+      },1600);
+    });
+  }
+
+  /* ---------- pick ---------- */
+  function pick(el){
+    if(el.closest('.match').classList.contains('locked'))return;
+    el.parentElement.querySelectorAll('.opt').forEach(o=>o.classList.remove('sel'));
+    el.classList.add('sel');
+  }
+  function saved(btn){btn.textContent='Picks locked in ✓';btn.style.filter='saturate(.6)';burst();setTimeout(()=>{btn.textContent='Save my picks';btn.style.filter='';},1500);}
+
+  /* ---------- leaderboard seg ---------- */
+  function segTo(btn,which){
+    btn.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('on'));btn.classList.add('on');
+    document.getElementById('view-you').style.display=which==='you'?'block':'none';
+    document.getElementById('view-dept').style.display=which==='dept'?'block':'none';
+  }
+
+  /* ---------- share sheet ---------- */
+  function openSheet(){document.getElementById('sheetbg').classList.add('on');document.getElementById('sheet').classList.add('on');}
+  function closeSheet(){document.getElementById('sheetbg').classList.remove('on');document.getElementById('sheet').classList.remove('on');}
+
+  /* ---------- confetti ---------- */
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function burst(){
+    if(reduce)return;
+    const c=document.getElementById('cfx')||makeCanvas();const ctx=c.getContext('2d');
+    const W=c.width=c.offsetWidth,H=c.height=c.offsetHeight;
+    const cols=['#19E68C','#FFC93C','#FF4D6D','#4D8DFF','#fff'];
+    let P=Array.from({length:70},()=>({x:W/2,y:H*.4,vx:(Math.random()-.5)*7,vy:Math.random()*-8-2,r:Math.random()*5+2,c:cols[Math.random()*cols.length|0],a:1,rot:Math.random()*6}));
+    let t=0;(function loop(){ctx.clearRect(0,0,W,H);t++;P.forEach(p=>{p.vy+=.22;p.x+=p.vx;p.y+=p.vy;p.a-=.012;p.rot+=.2;ctx.globalAlpha=Math.max(0,p.a);ctx.fillStyle=p.c;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.rot);ctx.fillRect(-p.r,-p.r,p.r*2,p.r*1.4);ctx.restore();});if(t<140)requestAnimationFrame(loop);else ctx.clearRect(0,0,W,H);})();
+  }
+  function makeCanvas(){const c=document.createElement('canvas');c.id='cfx';c.className='confetti-strip';c.style.position='absolute';c.style.inset='0';c.style.zIndex=80;c.style.pointerEvents='none';document.getElementById('phone').appendChild(c);return c;}
+
+  /* ---------- countdown tick ---------- */
+  let cdT=setInterval(tick,1000);
+  function tick(){const el=document.getElementById('cd');if(!el)return;let[h,m,s]=el.textContent.split(':').map(Number);if(isNaN(h)){clearInterval(cdT);return;}s--;if(s<0){s=59;m--;}if(m<0){m=59;h--;}if(h<0){el.textContent='Locked';clearInterval(cdT);return;}el.textContent=[h,m,s].map(n=>String(n).padStart(2,'0')).join(':');}
+
+  buildTabs();buildDepts();buildRace();
+</script>
+</body>
+</html>

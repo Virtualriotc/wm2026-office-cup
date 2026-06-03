@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>WM 2026 Office Cup — Orrery</title>
+<style>
+  :root{
+    --space:#070912;          /* near-black deep field */
+    --space-2:#0a0d1a;
+    --ink:#e9edf7;            /* cool white text */
+    --ink-60:rgba(233,237,247,.6);
+    --ink-35:rgba(233,237,247,.35);
+    --ink-18:rgba(233,237,247,.18);
+    --sun:#ffe9b0;           /* warm white-gold core */
+    --ring:#3a4a6b;          /* desaturated cyan orbital track */
+    --line:rgba(58,74,107,.55);
+    --ease:cubic-bezier(.16,1,.3,1);
+    --mono:"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
+    --sans:"Helvetica Neue",Helvetica,"Segoe UI",system-ui,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;height:100%;}
+  html{overscroll-behavior:none;}
+  body{
+    background:var(--space);
+    color:var(--ink);
+    font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;
+    overflow:hidden;
+    line-height:1.4;
+    position:fixed;inset:0;
+  }
+
+  /* faint blue-violet nebula wash, fixed behind canvas */
+  .nebula{
+    position:absolute;inset:0;z-index:0;pointer-events:none;
+    background:
+      radial-gradient(60% 50% at 28% 22%, rgba(58,46,110,.32), transparent 70%),
+      radial-gradient(55% 45% at 78% 78%, rgba(28,58,98,.28), transparent 72%),
+      radial-gradient(40% 40% at 60% 12%, rgba(96,42,84,.16), transparent 70%),
+      var(--space);
+  }
+  .grain{
+    position:absolute;inset:0;z-index:1;pointer-events:none;opacity:.05;
+    background-image:radial-gradient(rgba(255,255,255,.9) .5px,transparent .6px);
+    background-size:3px 3px;
+    mix-blend-mode:screen;
+  }
+
+  #stage{position:absolute;inset:0;z-index:2;display:block;cursor:grab;touch-action:none;}
+  #stage.dragging{cursor:grabbing;}
+
+  /* ---- top chrome ---- */
+  .top{
+    position:absolute;left:0;right:0;top:0;z-index:5;
+    padding:18px 22px 0;
+    display:flex;align-items:flex-start;justify-content:space-between;
+    pointer-events:none;
+  }
+  .brand{display:flex;flex-direction:column;gap:3px;}
+  .kicker{
+    font:600 10px/1 var(--mono);letter-spacing:.34em;text-transform:uppercase;
+    color:var(--ink-35);
+  }
+  .title{
+    font:600 17px/1.1 var(--sans);letter-spacing:.01em;color:var(--ink);
+    display:flex;align-items:baseline;gap:9px;
+  }
+  .title b{font-weight:700;}
+  .title .yr{font:600 11px/1 var(--mono);color:var(--sun);letter-spacing:.12em;}
+  .stamp{
+    text-align:right;font:500 10px/1.5 var(--mono);color:var(--ink-35);
+    letter-spacing:.06em;
+  }
+  .stamp .live{color:#7fe0b0;}
+  .stamp .live::before{
+    content:"";display:inline-block;width:6px;height:6px;border-radius:50%;
+    background:#7fe0b0;margin-right:6px;vertical-align:middle;
+    box-shadow:0 0 8px #7fe0b0;
+    animation:pulse 2.2s var(--ease) infinite;
+  }
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+
+  /* ---- legend / standings sidebar ---- */
+  .legend{
+    position:absolute;left:22px;bottom:22px;z-index:5;
+    width:228px;max-width:46vw;
+    padding:14px 14px 12px;
+    background:linear-gradient(180deg,rgba(12,16,30,.72),rgba(8,11,22,.82));
+    border:1px solid var(--line);
+    border-radius:14px;
+    backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px);
+    box-shadow:0 18px 50px -22px rgba(0,0,0,.85);
+  }
+  .legend h4{
+    margin:0 0 10px;font:600 10px/1 var(--mono);letter-spacing:.26em;
+    text-transform:uppercase;color:var(--ink-35);
+    display:flex;justify-content:space-between;align-items:center;
+  }
+  .legend h4 span{color:var(--ink-18);letter-spacing:.1em;}
+  .row{
+    display:grid;grid-template-columns:18px 1fr auto;align-items:center;
+    gap:9px;padding:5px 0;
+    border-top:1px solid rgba(58,74,107,.18);
+    transition:opacity .4s var(--ease);
+  }
+  .row:first-of-type{border-top:none;}
+  .row .pos{font:600 11px/1 var(--mono);color:var(--ink-35);text-align:center;}
+  .row .dot{
+    width:9px;height:9px;border-radius:50%;justify-self:center;
+    box-shadow:0 0 9px 1px currentColor;
+  }
+  .row .nm{
+    font:500 12px/1.2 var(--sans);color:var(--ink-60);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  .row.you .nm{color:var(--ink);font-weight:600;}
+  .row.you .nm::after{
+    content:"YOU";font:600 8px/1 var(--mono);letter-spacing:.16em;
+    margin-left:7px;color:var(--space);background:var(--sun);
+    padding:2px 4px;border-radius:3px;vertical-align:middle;
+  }
+  .row .pt{font:600 11px/1 var(--mono);color:var(--ink-35);letter-spacing:.02em;}
+  .row .pos[data-rank="1"]{color:var(--sun);}
+
+  /* ---- first-run onboarding cue ---- */
+  .cue{
+    position:absolute;left:50%;top:50%;z-index:6;
+    transform:translate(-50%,-50%);
+    text-align:center;pointer-events:none;
+    opacity:0;
+  }
+  .cue.show{animation:cueIn 5.4s var(--ease) forwards;}
+  @keyframes cueIn{
+    0%{opacity:0;transform:translate(-50%,-46%);}
+    12%{opacity:1;transform:translate(-50%,-50%);}
+    72%{opacity:1;transform:translate(-50%,-50%);}
+    100%{opacity:0;transform:translate(-50%,-54%);}
+  }
+  .cue .lead{
+    font:600 13px/1.4 var(--sans);letter-spacing:.02em;color:var(--ink);
+    text-shadow:0 2px 20px rgba(0,0,0,.9);
+  }
+  .cue .lead em{color:var(--sun);font-style:normal;}
+  .cue .sub{
+    margin-top:5px;font:500 10px/1 var(--mono);letter-spacing:.22em;
+    text-transform:uppercase;color:var(--ink-35);
+  }
+
+  /* ---- bottom hint / event toast ---- */
+  .hint{
+    position:absolute;right:22px;bottom:22px;z-index:5;
+    display:flex;flex-direction:column;align-items:flex-end;gap:8px;
+    pointer-events:none;
+  }
+  .toast{
+    pointer-events:none;
+    max-width:260px;
+    padding:11px 14px;
+    background:linear-gradient(180deg,rgba(14,18,34,.82),rgba(8,11,22,.9));
+    border:1px solid var(--line);
+    border-left:2px solid var(--sun);
+    border-radius:11px;
+    backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px);
+    font:500 12px/1.45 var(--sans);color:var(--ink-60);
+    box-shadow:0 14px 40px -20px rgba(0,0,0,.85);
+    opacity:0;transform:translateY(10px);
+    transition:opacity .5s var(--ease),transform .5s var(--ease);
+  }
+  .toast.show{opacity:1;transform:translateY(0);}
+  .toast b{color:var(--ink);font-weight:600;}
+  .toast .em{color:var(--sun);font-weight:600;}
+  .controls{
+    pointer-events:auto;display:flex;gap:7px;align-items:center;
+    font:500 10px/1 var(--mono);letter-spacing:.08em;color:var(--ink-35);
+  }
+  .ctl{
+    pointer-events:auto;cursor:pointer;user-select:none;
+    padding:7px 11px;border-radius:9px;
+    border:1px solid var(--line);
+    background:rgba(12,16,30,.6);
+    color:var(--ink-60);
+    font:600 10px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;
+    transition:border-color .25s var(--ease),color .25s var(--ease),background .25s var(--ease);
+  }
+  .ctl:hover{border-color:rgba(255,233,176,.5);color:var(--ink);background:rgba(20,26,46,.7);}
+  .ctl:active{transform:scale(.96);}
+  .ctl.armed{border-color:rgba(255,233,176,.7);color:var(--sun);}
+
+  /* ---- comet pick selector ---- */
+  .picker{
+    position:absolute;z-index:7;left:50%;top:50%;
+    width:230px;height:230px;margin:-115px 0 0 -115px;
+    pointer-events:none;opacity:0;transform:scale(.86);
+    transition:opacity .35s var(--ease),transform .45s var(--ease);
+  }
+  .picker.show{opacity:1;transform:scale(1);pointer-events:auto;}
+  .picker .arc{
+    position:absolute;inset:0;border-radius:50%;
+    border:1.5px solid var(--line);
+    transition:border-color .3s var(--ease);
+  }
+  .picker .arc.a2{inset:34px;}
+  .picker .arc.a3{inset:68px;}
+  .picker .opt{
+    position:absolute;cursor:pointer;
+    transform:translate(-50%,-50%);
+    width:54px;height:30px;border-radius:16px;
+    display:flex;align-items:center;justify-content:center;
+    font:700 11px/1 var(--mono);letter-spacing:.08em;
+    color:var(--ink);
+    background:rgba(12,16,30,.85);
+    border:1px solid var(--line);
+    backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+    transition:transform .2s var(--ease),border-color .2s var(--ease),box-shadow .2s var(--ease),color .2s var(--ease);
+  }
+  .picker .opt:hover{transform:translate(-50%,-50%) scale(1.12);}
+  .picker .opt.W{color:#8ff0c4;border-color:rgba(143,240,196,.5);}
+  .picker .opt.D{color:#cfd8ec;}
+  .picker .opt.L{color:#ff9a8a;border-color:rgba(255,154,138,.5);}
+  .picker .opt.W:hover{box-shadow:0 0 22px -2px rgba(143,240,196,.6);}
+  .picker .opt.D:hover{box-shadow:0 0 22px -2px rgba(207,216,236,.5);}
+  .picker .opt.L:hover{box-shadow:0 0 22px -2px rgba(255,154,138,.6);}
+  .picker .opt.chosen{transform:translate(-50%,-50%) scale(1.18);border-color:var(--sun);box-shadow:0 0 26px -2px rgba(255,233,176,.7);}
+  .picker .cap{
+    position:absolute;left:50%;top:-26px;transform:translateX(-50%);
+    white-space:nowrap;text-align:center;
+    font:600 10px/1.3 var(--mono);letter-spacing:.16em;text-transform:uppercase;
+    color:var(--ink-35);
+  }
+  .picker .cap b{display:block;color:var(--ink);letter-spacing:.04em;font-size:12px;text-transform:none;margin-top:3px;}
+
+  .scrim{
+    position:absolute;inset:0;z-index:6;background:rgba(4,6,14,.42);
+    opacity:0;pointer-events:none;transition:opacity .35s var(--ease);
+    backdrop-filter:blur(1px);-webkit-backdrop-filter:blur(1px);
+  }
+  .scrim.show{opacity:1;pointer-events:auto;}
+
+  @media (max-width:640px){
+    .legend{width:188px;padding:11px 11px 9px;}
+    .row .nm{font-size:11px;}
+    .toast{max-width:200px;font-size:11px;}
+    .title{font-size:15px;}
+    .controls{display:none;}
+    .hint{bottom:18px;right:14px;}
+    .legend{left:14px;bottom:14px;}
+  }
+
+  /* ---- reduced motion: calm static fallback ---- */
+  @media (prefers-reduced-motion: reduce){
+    .stamp .live::before{animation:none;}
+    .cue.show{animation:none;opacity:1;}
+    .cue .lead em::after{content:"";}
+  }
+</style>
+</head>
+<body>
+  <div class="nebula"></div>
+  <canvas id="stage"></canvas>
+  <div class="grain"></div>
+
+  <div class="top">
+    <div class="brand">
+      <div class="kicker">Office Cup · Orrery</div>
+      <div class="title"><b>WM</b> Standings as a Solar System <span class="yr">2026</span></div>
+    </div>
+    <div class="stamp">
+      <div class="live">LIVE · Matchday 9</div>
+      <div>Closest to the sun is winning</div>
+    </div>
+  </div>
+
+  <!-- first-run cue -->
+  <div class="cue" id="cue">
+    <div class="lead">Each department is a planet. <em>Closest to the sun is winning.</em></div>
+    <div class="sub">Mass = points · radius = rank · moons = colleagues</div>
+  </div>
+
+  <!-- standings legend (kept in sync with sim) -->
+  <div class="legend" id="legend">
+    <h4>Departments <span id="lgTurn">orbit 9</span></h4>
+    <!-- rows injected by JS -->
+  </div>
+
+  <!-- comet pick selector -->
+  <div class="scrim" id="scrim"></div>
+  <div class="picker" id="picker">
+    <div class="cap">Comet incoming<b id="pickMatch">DE vs BR</b></div>
+    <div class="arc a1"></div><div class="arc a2"></div><div class="arc a3"></div>
+    <div class="opt W" data-p="W">WIN</div>
+    <div class="opt D" data-p="D">DRAW</div>
+    <div class="opt L" data-p="L">LOSS</div>
+  </div>
+
+  <div class="hint">
+    <div class="toast" id="toast"></div>
+    <div class="controls">
+      <span>drag to rotate</span>
+      <div class="ctl" id="btnComet">incoming match</div>
+      <div class="ctl" id="btnReplay">replay slingshot</div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  "use strict";
+
+  var REDUCE = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  var canvas = document.getElementById("stage");
+  var ctx = canvas.getContext("2d");
+  var DPR = Math.min(window.devicePixelRatio || 1, 2);
+  var W=0,H=0,cx=0,cy=0,scale=1;
+
+  // ---- mock world: 6 departments. luminance encodes rank (set per frame). ----
+  // hues kept controlled; we modulate value/alpha by rank so read is monotonic.
+  var DEPTS = [
+    { name:"Sales",      hue:[255,138, 96], pts:2480, members:74 },  // coral
+    { name:"Operations", hue:[ 90,210,180], pts:2310, members:118 }, // teal  <- YOU
+    { name:"Tech",       hue:[120,150,255], pts:2150, members:52 },  // indigo
+    { name:"Customer Success", hue:[235,170,255], pts:1980, members:61 }, // magenta
+    { name:"Retention",  hue:[120,220,140], pts:1740, members:38 },  // emerald
+    { name:"Marketing",  hue:[255,210,120], pts:1520, members:27 }   // gold
+  ];
+  var YOU = 1; // Operations is "you"
+
+  // base orbital radii (in scene units; ring index 0 = innermost = winning)
+  // mapped to actual pixel radii each frame via scale.
+  var RING_BASE = [0.16, 0.255, 0.35, 0.45, 0.55, 0.65];
+
+  // assign each dept a ring slot derived from current points order
+  function rankOrder(){
+    var idx = DEPTS.map(function(d,i){return i;});
+    idx.sort(function(a,b){return DEPTS[b].pts - DEPTS[a].pts;});
+    return idx; // idx[0] = leader
+  }
+
+  // per-dept dynamic state
+  DEPTS.forEach(function(d,i){
+    d.theta = (i/DEPTS.length)*Math.PI*2 + 0.4*i;
+    d.ringSlot = i;        // current target ring (by rank)
+    d.r = RING_BASE[i];    // animated radius (scene units)
+    d.rTarget = RING_BASE[i];
+    d.lum = 1;             // luminance multiplier, set per frame by rank
+    d.x=0; d.y=0; d.px=0; d.py=0;
+    d.trail = [];          // recent positions for comet-tail during slingshot
+    d.boost = 0;           // slingshot stretch 0..1
+    d.flare = 0;           // brightness flare 0..1
+    // moons: instanced points orbiting the planet
+    var mc = Math.max(6, Math.min(22, Math.round(d.members/6)));
+    d.moons = [];
+    for(var m=0;m<mc;m++){
+      d.moons.push({
+        a: Math.random()*Math.PI*2,
+        rad: 13 + Math.random()*16,        // moon orbit radius around planet (px @ scale 1)
+        sp: (0.6+Math.random()*0.9)*(Math.random()<.5?1:-1),
+        you: (i===YOU && m===0)             // your moon (first moon of Operations)
+      });
+    }
+  });
+
+  // starfield (static-ish parallax dust)
+  var STARS=[];
+  function buildStars(){
+    STARS=[];
+    var n = Math.round((W*H)/9000);
+    for(var i=0;i<n;i++){
+      STARS.push({ x:Math.random(), y:Math.random(), z:Math.random(), tw:Math.random()*Math.PI*2 });
+    }
+  }
+
+  // ---- view transform: rotate + zoom (drag) ----
+  var view = { rot:0, zoom:1, rotV:0 };
+  var dragging=false, lastX=0, lastY=0, lastT=0;
+
+  function resize(){
+    W = window.innerWidth; H = window.innerHeight;
+    canvas.width = W*DPR; canvas.height = H*DPR;
+    canvas.style.width = W+"px"; canvas.style.height = H+"px";
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+    cx = W*0.5; cy = H*0.52;
+    scale = Math.min(W,H)*0.72;   // scene-unit -> px
+    buildStars();
+  }
+  window.addEventListener("resize", resize);
+
+  // ---- timeline / scripted slingshot overtake ----
+  var t0 = performance.now();
+  var slingshot = null;   // active overtake animation
+  var camTarget = 0;      // camera rot drift target offset
+  var lowDetail = false;  // LOD when zoomed out far
+
+  var toastEl = document.getElementById("toast");
+  var toastTimer=null;
+  function toast(html, ms){
+    toastEl.innerHTML = html;
+    toastEl.classList.add("show");
+    if(toastTimer) clearTimeout(toastTimer);
+    if(ms!==0) toastTimer = setTimeout(function(){ toastEl.classList.remove("show"); }, ms||4200);
+  }
+
+  // ---- legend render (rank-sorted) ----
+  var legendEl = document.getElementById("legend");
+  function rgb(d,a){ return "rgba("+d.hue[0]+","+d.hue[1]+","+d.hue[2]+","+(a==null?1:a)+")"; }
+  function renderLegend(){
+    var order = rankOrder();
+    var rows="";
+    order.forEach(function(di,pos){
+      var d=DEPTS[di];
+      var you = di===YOU ? " you":"";
+      rows += '<div class="row'+you+'" data-di="'+di+'">'+
+        '<div class="pos" data-rank="'+(pos+1)+'">'+(pos+1)+'</div>'+
+        '<div class="dot" style="background:'+rgb(d,1)+';color:'+rgb(d,.9)+'"></div>'+
+        '<div class="nm">'+d.name+'</div>'+
+        '<div class="pt">'+d.pts.toLocaleString()+'</div>'+
+        '</div>';
+    });
+    // preserve the <h4> header
+    legendEl.innerHTML = '<h4>Departments <span id="lgTurn">live</span></h4>' + rows;
+  }
+  renderLegend();
+
+  // ============================================================
+  //  RENDER
+  // ============================================================
+  function worldPoint(r, theta){
+    // r in scene units, theta in radians; apply view rotation
+    var a = theta + view.rot;
+    var R = r * scale * view.zoom;
+    return { x: cx + R*Math.cos(a), y: cy + R*Math.sin(a)*0.62, R:R }; // 0.62 = tilt of the orbital plane
+  }
+
+  function drawSun(time){
+    var pr = 26*view.zoom;
+    // corona
+    var g = ctx.createRadialGradient(cx,cy,0,cx,cy,pr*4.2);
+    g.addColorStop(0,"rgba(255,233,176,0.9)");
+    g.addColorStop(0.18,"rgba(255,224,150,0.5)");
+    g.addColorStop(0.45,"rgba(255,200,120,0.12)");
+    g.addColorStop(1,"rgba(255,200,120,0)");
+    ctx.fillStyle=g;
+    ctx.beginPath();ctx.arc(cx,cy,pr*4.2,0,Math.PI*2);ctx.fill();
+    // thin breathing corona ring
+    var breathe = REDUCE?1:(1+0.05*Math.sin(time*0.0013));
+    ctx.strokeStyle="rgba(255,233,176,0.22)";
+    ctx.lineWidth=1.2;
+    ctx.beginPath();ctx.arc(cx,cy,pr*1.9*breathe,0,Math.PI*2);ctx.stroke();
+    // core
+    var c = ctx.createRadialGradient(cx-pr*.3,cy-pr*.3,pr*.1,cx,cy,pr);
+    c.addColorStop(0,"#fff7e0");
+    c.addColorStop(0.6,"#ffe9b0");
+    c.addColorStop(1,"#ffcf7a");
+    ctx.fillStyle=c;
+    ctx.beginPath();ctx.arc(cx,cy,pr,0,Math.PI*2);ctx.fill();
+  }
+
+  function drawRings(){
+    for(var i=0;i<RING_BASE.length;i++){
+      var R = RING_BASE[i]*scale*view.zoom;
+      ctx.strokeStyle = (i===0) ? "rgba(255,233,176,0.16)" : "rgba(58,74,107,0.5)";
+      ctx.lineWidth = (i===0)?1.2:1;
+      ctx.beginPath();
+      ctx.ellipse(cx,cy,R,R*0.62,0,0,Math.PI*2);
+      ctx.stroke();
+    }
+  }
+
+  function drawStars(time){
+    for(var i=0;i<STARS.length;i++){
+      var s=STARS[i];
+      var x=s.x*W, y=s.y*H;
+      var tw = REDUCE?0.6:(0.45+0.45*Math.sin(time*0.001+s.tw));
+      ctx.globalAlpha = (0.12+0.5*s.z)*tw;
+      var sz = s.z*1.5+0.3;
+      ctx.fillStyle = s.z>0.85 ? "rgba(200,220,255,1)" : "rgba(255,255,255,1)";
+      ctx.fillRect(x,y,sz,sz);
+    }
+    ctx.globalAlpha=1;
+  }
+
+  // probes & mass particles (fire on pick / correct pick)
+  var probes=[];   // {x,y,tx,ty,t,col}
+  var massP=[];    // {x,y,tx,ty,t,col}
+  function fireProbe(fromX,fromY,toX,toY,col){
+    probes.push({x0:fromX,y0:fromY,x1:toX,y1:toY,t:0,col:col});
+  }
+  function streamMass(toDi, n, col){
+    var d=DEPTS[toDi];
+    for(var i=0;i<n;i++){
+      var ang=Math.random()*Math.PI*2, dist=120+Math.random()*200;
+      massP.push({
+        x0:d.x+Math.cos(ang)*dist, y0:d.y+Math.sin(ang)*dist,
+        di:toDi, t:-i*0.06, col:col
+      });
+    }
+  }
+
+  function drawPlanet(d, di, time){
+    var p = worldPoint(d.r, d.theta);
+    d.px=d.x; d.py=d.y; d.x=p.x; d.y=p.y;
+
+    var baseR = 7 + Math.sqrt(d.members)*0.55;
+    baseR *= view.zoom;
+    var lum = d.lum * (1 + d.flare*0.9);
+
+    // department aura/bloom (leader gets more)
+    var bloom = baseR * (2.4 + d.flare*2.2);
+    var ag = ctx.createRadialGradient(d.x,d.y,0,d.x,d.y,bloom);
+    ag.addColorStop(0, rgb(d, 0.42*lum));
+    ag.addColorStop(0.4, rgb(d, 0.14*lum));
+    ag.addColorStop(1, rgb(d, 0));
+    ctx.fillStyle=ag;
+    ctx.beginPath();ctx.arc(d.x,d.y,bloom,0,Math.PI*2);ctx.fill();
+
+    // comet-tail trail during slingshot
+    if(d.boost>0.02 && d.trail.length>1){
+      for(var ti=0;ti<d.trail.length-1;ti++){
+        var tp=d.trail[ti], a=ti/d.trail.length;
+        ctx.strokeStyle = rgb(d, 0.5*a*d.boost*lum);
+        ctx.lineWidth = baseR*1.4*a;
+        ctx.lineCap="round";
+        ctx.beginPath();
+        ctx.moveTo(tp.x,tp.y);
+        ctx.lineTo(d.trail[ti+1].x,d.trail[ti+1].y);
+        ctx.stroke();
+      }
+    }
+
+    // moons (instanced) — LOD: collapse to single glyph when far/low detail
+    if(!lowDetail){
+      for(var m=0;m<d.moons.length;m++){
+        var mo=d.moons[m];
+        // stretch moon orbit during slingshot (trailing comet-tail feel)
+        var stretch = 1 + d.boost*1.8;
+        var mx = d.x + Math.cos(mo.a)*mo.rad*view.zoom*stretch;
+        var my = d.y + Math.sin(mo.a)*mo.rad*view.zoom*0.62;
+        if(mo.you){
+          var pls = REDUCE?1:(1+0.4*Math.sin(time*0.006));
+          ctx.fillStyle="rgba(255,233,176,0.95)";
+          ctx.beginPath();ctx.arc(mx,my,2.6*pls*view.zoom,0,Math.PI*2);ctx.fill();
+          ctx.strokeStyle="rgba(255,233,176,0.4)";
+          ctx.lineWidth=1;
+          ctx.beginPath();ctx.arc(mx,my,5*pls*view.zoom,0,Math.PI*2);ctx.stroke();
+        } else {
+          ctx.fillStyle="rgba(225,235,255,"+(0.5*lum)+")";
+          ctx.beginPath();ctx.arc(mx,my,1.5*view.zoom,0,Math.PI*2);ctx.fill();
+        }
+      }
+    } else {
+      // single glyph + glow representing the swarm
+      ctx.fillStyle="rgba(225,235,255,"+(0.3*lum)+")";
+      ctx.beginPath();ctx.arc(d.x+baseR*1.8,d.y-baseR*0.4,2.2*view.zoom,0,Math.PI*2);ctx.fill();
+    }
+
+    // planet body
+    var pg = ctx.createRadialGradient(d.x-baseR*.35,d.y-baseR*.35,baseR*.1,d.x,d.y,baseR);
+    pg.addColorStop(0, rgb({hue:[Math.min(255,d.hue[0]+60),Math.min(255,d.hue[1]+60),Math.min(255,d.hue[2]+60)]}, Math.min(1,lum)));
+    pg.addColorStop(1, rgb(d, Math.min(1,0.85*lum)));
+    ctx.fillStyle=pg;
+    ctx.beginPath();ctx.arc(d.x,d.y,baseR,0,Math.PI*2);ctx.fill();
+
+    // YOU ring + label
+    if(di===YOU){
+      var yr = REDUCE?1:(1+0.06*Math.sin(time*0.004));
+      ctx.strokeStyle="rgba(255,233,176,0.7)";
+      ctx.lineWidth=1.4;
+      ctx.beginPath();ctx.arc(d.x,d.y,baseR*1.9*yr,0,Math.PI*2);ctx.stroke();
+    }
+
+    // name label (only when reasonably detailed / hovered-ish) — keep light
+    if(view.zoom>0.55){
+      ctx.font = (di===YOU?"600 ":"500 ")+ (11*Math.min(1.2,view.zoom)) +"px 'Helvetica Neue',Helvetica,'Segoe UI',system-ui,Arial,sans-serif";
+      ctx.fillStyle = di===YOU ? "rgba(255,233,176,0.95)" : "rgba(233,237,247,"+(0.32+0.4*d.lum)+")";
+      ctx.textAlign="center";
+      ctx.fillText(d.name.split(" ")[0], d.x, d.y - baseR - 8);
+    }
+
+    // reduced-motion numeric rank badge by ring
+    if(REDUCE){
+      ctx.font="600 10px 'SFMono-Regular',Menlo,Consolas,'Liberation Mono',monospace";
+      ctx.fillStyle="rgba(233,237,247,0.6)";
+      ctx.textAlign="center";
+      ctx.fillText("#"+(d.ringSlot+1), d.x, d.y + baseR + 14);
+    }
+  }
+
+  // ============================================================
+  //  SIM STEP
+  // ============================================================
+  function step(time, dt){
+    // assign luminance + target ring by rank (monotonic: leader brightest/innermost)
+    var order = rankOrder();
+    order.forEach(function(di,pos){
+      var d=DEPTS[di];
+      if(!(slingshot && slingshot.who===di)){     // slingshot drives its own r
+        d.rTarget = RING_BASE[pos];
+        d.ringSlot = pos;
+      }
+      // luminance: leader 1.0 -> last ~0.42, monotonic
+      d.lum = 1 - pos*(0.58/(DEPTS.length-1));
+    });
+
+    DEPTS.forEach(function(d,di){
+      // ease radius toward target (normal drift between turns)
+      if(!(slingshot && slingshot.who===di)){
+        d.r += (d.rTarget - d.r) * Math.min(1, dt*2.2);
+        d.boost += (0 - d.boost)*Math.min(1,dt*3);
+        d.flare += (0 - d.flare)*Math.min(1,dt*2);
+      }
+      // angular speed inversely proportional to r (inner = faster) — physics for free
+      var spd = (REDUCE?0:1) * (0.10 / (d.r+0.05)) * (0.5 + 0.5*view.zoom);
+      d.theta += spd*dt + (d.boost*2.4*dt); // boosted angular speed during swing
+      // moon spin
+      if(!REDUCE){
+        for(var m=0;m<d.moons.length;m++){ d.moons[m].a += d.moons[m].sp*dt; }
+      }
+      // record trail when boosting
+      if(d.boost>0.05){
+        d.trail.push({x:d.x,y:d.y});
+        if(d.trail.length>16) d.trail.shift();
+      } else if(d.trail.length){ d.trail.shift(); }
+    });
+
+    // ---- active slingshot animation ----
+    if(slingshot){
+      var s=slingshot;
+      s.t += dt/ s.dur;
+      var k = Math.min(1, s.t);
+      var d = DEPTS[s.who];
+      // ease-in with overshoot toward the sun side, then settle on new ring
+      var e = easeSlingshot(k);
+      d.r = s.rFrom + (s.rTo - s.rFrom)*e.r;
+      d.boost = e.boost;
+      d.flare = e.flare;
+      // the passed rival recedes outward + dims
+      if(s.rival!=null){
+        var rv=DEPTS[s.rival];
+        rv.r += ((RING_BASE[s.rivalTo]) - rv.r)*Math.min(1,dt*3);
+        rv.flare = Math.max(rv.flare, -0.0); // no flare; just recede
+        rv.recede = Math.min(1, (rv.recede||0)+dt*1.4);
+      }
+      if(k>=1){
+        // commit the points swap so legend/rank reflects the overtake
+        DEPTS[s.who].pts = s.newPts;
+        slingshot=null;
+        renderLegend();
+        toast('<b>'+d.name+'</b> completed a <span class="em">gravity assist</span> — slingshotting past '+DEPTS[s.rival].name+' into orbit #'+(s.toRing+1)+'.', 5200);
+        // mass stream reward
+        streamMass(s.who, 26, rgb(d,1));
+        // camera re-centers toward new leader
+        camTarget = -DEPTS[rankOrder()[0]].theta + (-Math.PI/2) - view.rot;
+      }
+    }
+
+    // ---- probes ----
+    for(var i=probes.length-1;i>=0;i--){
+      var pr=probes[i]; pr.t += dt*1.4;
+      if(pr.t>=1){ probes.splice(i,1); }
+    }
+    // ---- mass particles ----
+    for(var j=massP.length-1;j>=0;j--){
+      var mp=massP[j]; mp.t += dt*0.9;
+      if(mp.t>=1){ massP.splice(j,1); }
+    }
+
+    // camera drift toward new leader (smooth)
+    if(Math.abs(camTarget)>0.0005 && !dragging){
+      var dv = camTarget*Math.min(1,dt*1.2);
+      view.rot += dv; camTarget -= dv;
+    }
+    // drag inertia
+    if(!dragging && Math.abs(view.rotV)>0.0001){
+      view.rot += view.rotV; view.rotV*=0.94;
+    }
+
+    // LOD threshold
+    lowDetail = view.zoom < 0.62;
+  }
+
+  // slingshot easing — returns {r:0..1 progress with overshoot, boost, flare}
+  function easeSlingshot(k){
+    // r-progress: ease-in then overshoot inward (dips below target = closer to sun)
+    // model: accelerate, dip past target by ~12%, settle.
+    var p;
+    if(k<0.62){
+      var x=k/0.62;
+      p = x*x*(1.18);            // accelerate inward, slightly past
+    } else {
+      var x2=(k-0.62)/0.38;
+      p = 1.18 - 0.18*(x2*x2*(3-2*x2)); // smootherstep back to 1.0
+    }
+    // boost (tail stretch + extra angular speed) peaks mid-swing
+    var boost = Math.sin(Math.min(1,k)*Math.PI);
+    // flare rises and holds a touch
+    var flare = k<0.7 ? (k/0.7) : (1 - 0.25*((k-0.7)/0.3));
+    return { r:p, boost:Math.max(0,boost), flare:Math.max(0,flare)*0.9 };
+  }
+
+  // ============================================================
+  //  TRIGGER A REAL OVERTAKE
+  //  Operations (YOU, rank 2) accumulates mass and slingshots past Sales (rank 1).
+  // ============================================================
+  function triggerSlingshot(){
+    if(slingshot) return;
+    var order = rankOrder();
+    // the climber = whoever is currently rank 2; the rival = current rank 1
+    var climberDi = order[1];
+    var rivalDi   = order[0];
+    var climber = DEPTS[climberDi];
+    var rival   = DEPTS[rivalDi];
+    // give the climber enough new mass to genuinely pass
+    var newPts = rival.pts + 40;
+    slingshot = {
+      who: climberDi, rival: rivalDi,
+      rFrom: climber.r, rTo: RING_BASE[0],
+      toRing: 0, rivalTo: 1,
+      newPts: newPts, t:0, dur: 1.25
+    };
+    rival.recede = 0;
+    toast('<b>'+climber.name+'</b> is gaining mass — entering a <span class="em">gravity assist</span>…', 0);
+  }
+
+  // ============================================================
+  //  COMET (incoming match) + pick interaction
+  // ============================================================
+  var comet = null; // {x,y,vx,vy,from, life}
+  function spawnComet(){
+    if(comet) return;
+    // streak in from a screen edge toward your planet
+    var d=DEPTS[YOU];
+    var edge = Math.random()*Math.PI*2;
+    var sx = cx + Math.cos(edge)*Math.max(W,H)*0.7;
+    var sy = cy + Math.sin(edge)*Math.max(W,H)*0.7;
+    comet = { x:sx,y:sy, t:0, tx:d.x, ty:d.y, life:1, settled:false };
+    toast('A <span class="em">comet</span> is streaking in — Germany vs Brazil. Tap it to pick.', 0);
+  }
+  function drawComet(time){
+    if(!comet) return;
+    if(!comet.settled){
+      comet.t += 0.012;
+      var k=Math.min(1,comet.t);
+      var ee = 1-Math.pow(1-k,3);
+      comet.x = comet.x + (DEPTS[YOU].x - comet.x)*ee*0.12;
+      comet.y = comet.y + (DEPTS[YOU].y - comet.y)*ee*0.12;
+      // settle to a holding point near your planet
+      if(k>=1){ comet.settled=true; }
+    } else {
+      // orbit-hold near your planet, gently bob
+      var d=DEPTS[YOU];
+      comet.x += (d.x + 70 - comet.x)*0.04;
+      comet.y += (d.y - 60 - comet.y)*0.04;
+    }
+    // tail toward sun-opposite (streak look)
+    var ang = Math.atan2(comet.y-cy, comet.x-cx);
+    for(var i=8;i>0;i--){
+      var tx=comet.x+Math.cos(ang)*i*7, ty=comet.y+Math.sin(ang)*i*7;
+      ctx.fillStyle="rgba(180,220,255,"+(0.10*(8-i)/8)+")";
+      ctx.beginPath();ctx.arc(tx,ty,(8-i)*0.6,0,Math.PI*2);ctx.fill();
+    }
+    var glow=ctx.createRadialGradient(comet.x,comet.y,0,comet.x,comet.y,16);
+    glow.addColorStop(0,"rgba(220,240,255,0.9)");
+    glow.addColorStop(1,"rgba(160,200,255,0)");
+    ctx.fillStyle=glow;
+    ctx.beginPath();ctx.arc(comet.x,comet.y,16,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle="#eaf4ff";
+    ctx.beginPath();ctx.arc(comet.x,comet.y,3.4,0,Math.PI*2);ctx.fill();
+    comet._hit = {x:comet.x,y:comet.y,r:22};
+  }
+
+  // picker UI
+  var picker=document.getElementById("picker");
+  var scrim=document.getElementById("scrim");
+  function layoutPicker(){
+    // place 3 options on three arcs (top arc = WIN, mid = DRAW, inner = LOSS)
+    var opts=picker.querySelectorAll(".opt");
+    var radii=[100,71,42];
+    opts.forEach(function(o,i){
+      var ang=-Math.PI/2; // top
+      var r=radii[i];
+      o.style.left=(115 + Math.cos(ang)*r)+"px";
+      o.style.top =(115 + Math.sin(ang)*r)+"px";
+    });
+  }
+  function openPicker(){
+    layoutPicker();
+    picker.classList.add("show"); scrim.classList.add("show");
+  }
+  function closePicker(){ picker.classList.remove("show"); scrim.classList.remove("show"); }
+  scrim.addEventListener("click", closePicker);
+  picker.querySelectorAll(".opt").forEach(function(o){
+    o.addEventListener("click", function(){
+      picker.querySelectorAll(".opt").forEach(function(x){x.classList.remove("chosen");});
+      o.classList.add("chosen");
+      var pick=o.getAttribute("data-p");
+      // fire a probe from your moon toward the comet
+      var d=DEPTS[YOU];
+      var moon=d.moons.find(function(m){return m.you;});
+      var mx=d.x+Math.cos(moon.a)*moon.rad*view.zoom, my=d.y+Math.sin(moon.a)*moon.rad*view.zoom*0.62;
+      if(comet){ fireProbe(mx,my,comet.x,comet.y, rgb(d,1)); }
+      var label = pick==="W"?"WIN":pick==="D"?"DRAW":"LOSS";
+      setTimeout(function(){
+        closePicker();
+        comet=null;
+        toast('Pick locked: <b>Germany '+label+'</b>. Probe away from your moon — if it lands, mass streams into your planet.', 4600);
+        // reward preview: stream a little mass
+        streamMass(YOU, 10, rgb(d,1));
+      }, 560);
+    });
+  });
+
+  // ============================================================
+  //  MAIN LOOP
+  // ============================================================
+  function drawProbes(){
+    probes.forEach(function(pr){
+      var k=Math.min(1,pr.t), e=1-Math.pow(1-k,2);
+      var x=pr.x0+(pr.x1-pr.x0)*e, y=pr.y0+(pr.y1-pr.y0)*e;
+      ctx.fillStyle=pr.col;
+      ctx.globalAlpha=1-k*0.3;
+      ctx.beginPath();ctx.arc(x,y,2.4,0,Math.PI*2);ctx.fill();
+      ctx.globalAlpha=1;
+    });
+  }
+  function drawMass(){
+    massP.forEach(function(mp){
+      if(mp.t<0) return;
+      var d=DEPTS[mp.di];
+      var k=Math.min(1,mp.t), e=k*k;
+      var x=mp.x0+(d.x-mp.x0)*e, y=mp.y0+(d.y-mp.y0)*e;
+      ctx.fillStyle=mp.col;
+      ctx.globalAlpha=0.8*(1-k*0.4);
+      ctx.beginPath();ctx.arc(x,y,1.8,0,Math.PI*2);ctx.fill();
+      ctx.globalAlpha=1;
+    });
+  }
+
+  var last=performance.now();
+  function frame(now){
+    var dt=Math.min(0.05,(now-last)/1000); last=now;
+    ctx.clearRect(0,0,W,H);
+
+    drawStars(now);
+    drawRings();
+    drawSun(now);
+
+    step(now, dt);
+
+    // draw planets sorted by depth (further rings behind) — approximate by y
+    var drawOrder = DEPTS.map(function(d,i){return i;}).sort(function(a,b){return DEPTS[a].y-DEPTS[b].y;});
+    drawOrder.forEach(function(di){ drawPlanet(DEPTS[di], di, now); });
+
+    drawComet(now);
+    drawProbes();
+    drawMass();
+
+    if(REDUCE){
+      // static: draw once-ish; still rAF but motion frozen by spd=0 above
+    }
+    requestAnimationFrame(frame);
+  }
+
+  // ============================================================
+  //  INPUT
+  // ============================================================
+  function getXY(e){
+    if(e.touches && e.touches[0]) return {x:e.touches[0].clientX,y:e.touches[0].clientY};
+    return {x:e.clientX,y:e.clientY};
+  }
+  function onDown(e){
+    var p=getXY(e);
+    // comet tap test first
+    if(comet && comet._hit){
+      var dx=p.x-comet._hit.x, dy=p.y-comet._hit.y;
+      if(dx*dx+dy*dy < comet._hit.r*comet._hit.r){
+        openPicker();
+        return;
+      }
+    }
+    dragging=true; canvas.classList.add("dragging");
+    lastX=p.x; lastY=p.y; lastT=performance.now(); view.rotV=0;
+  }
+  function onMove(e){
+    if(!dragging) return;
+    var p=getXY(e);
+    var dx=p.x-lastX;
+    var now=performance.now(), ddt=Math.max(1,now-lastT);
+    view.rot += dx*0.005;
+    view.rotV = dx*0.005;
+    lastX=p.x; lastY=p.y; lastT=now;
+    if(e.cancelable) e.preventDefault();
+  }
+  function onUp(){ dragging=false; canvas.classList.remove("dragging"); }
+
+  canvas.addEventListener("mousedown",onDown);
+  window.addEventListener("mousemove",onMove);
+  window.addEventListener("mouseup",onUp);
+  canvas.addEventListener("touchstart",onDown,{passive:true});
+  canvas.addEventListener("touchmove",onMove,{passive:false});
+  canvas.addEventListener("touchend",onUp);
+
+  // pinch / wheel zoom
+  canvas.addEventListener("wheel",function(e){
+    e.preventDefault();
+    view.zoom = Math.max(0.4, Math.min(1.8, view.zoom * (1 - e.deltaY*0.0012)));
+  },{passive:false});
+  var pinch=null;
+  canvas.addEventListener("touchstart",function(e){
+    if(e.touches.length===2){
+      pinch=Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
+    }
+  },{passive:true});
+  canvas.addEventListener("touchmove",function(e){
+    if(e.touches.length===2 && pinch){
+      var d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
+      view.zoom=Math.max(0.4,Math.min(1.8, view.zoom*(d/pinch)));
+      pinch=d;
+      if(e.cancelable) e.preventDefault();
+    }
+  },{passive:false});
+  canvas.addEventListener("touchend",function(e){ if(e.touches.length<2) pinch=null; });
+
+  // buttons
+  document.getElementById("btnReplay").addEventListener("click", function(){
+    // reset to a state where rank2 can pass rank1, then fire
+    if(slingshot) return;
+    // nudge the current leader's lead so there's a real gap to close, then trigger
+    triggerSlingshot();
+    this.classList.add("armed");
+    var b=this; setTimeout(function(){b.classList.remove("armed");},1400);
+  });
+  document.getElementById("btnComet").addEventListener("click", function(){
+    spawnComet();
+    this.classList.add("armed");
+    var b=this; setTimeout(function(){b.classList.remove("armed");},1400);
+  });
+
+  // ============================================================
+  //  BOOT + AUTOPLAY TIMELINE
+  // ============================================================
+  resize();
+
+  // first-run cue
+  var cueEl=document.getElementById("cue");
+  cueEl.classList.add("show");
+
+  requestAnimationFrame(frame);
+
+  if(!REDUCE){
+    // scripted teaser (~12s): settle, cue, then the hero slingshot, then a comet pick.
+    setTimeout(function(){
+      toast('6 departments orbit the tournament. <b>Operations</b> (you) sits at orbit #2 — one good matchday from the front.', 5200);
+    }, 1200);
+
+    // HERO MOMENT: the real overtake
+    setTimeout(function(){
+      triggerSlingshot();
+    }, 6400);
+
+    // after overtake, a comet arrives to show the pick loop
+    setTimeout(function(){
+      spawnComet();
+    }, 9600);
+
+    // auto-open the picker briefly to demonstrate, then leave it interactive
+    setTimeout(function(){
+      if(comet){ openPicker(); }
+    }, 11600);
+    setTimeout(function(){
+      // gently auto-dismiss the demo picker if user hasn't touched it
+      if(picker.classList.contains("show") && !picker.querySelector(".opt.chosen")){
+        // simulate a WIN pick to complete the loop visually
+        var w=picker.querySelector(".opt.W"); if(w) w.click();
+      }
+    }, 14200);
+  } else {
+    // reduced motion: render a single static frame with rank badges, no autoplay.
+    // commit a representative ranking and draw once.
+    var order=rankOrder();
+    order.forEach(function(di,pos){ DEPTS[di].r=RING_BASE[pos]; DEPTS[di].ringSlot=pos; DEPTS[di].lum=1-pos*(0.58/(DEPTS.length-1)); });
+    ctx.clearRect(0,0,W,H);
+    drawStars(0); drawRings(); drawSun(0);
+    var dd=DEPTS.map(function(d,i){return i;});
+    dd.forEach(function(di){ drawPlanet(DEPTS[di],di,0); });
+    toast('Reduced motion: orbits are frozen. <b>Ring #1</b> (innermost) leads — rank badges shown under each planet.', 0);
+  }
+
+  // keep the legend "turn" label subtle
+  resize();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>WM 2026 Office Cup — Stadium Arcade</title>
+<style>
+  /* ============================ TOKENS ============================ */
+  :root{
+    --bg:#0A0E1A;            /* night stadium */
+    --bg2:#0E1424;
+    --sky:#0c1430;
+    --card:#141B2E;
+    --card2:#1A2236;
+    --line:#26304a;
+    --ink:#F4F7FF;
+    --muted:#8A93AE;
+    --green:#19E68C;        /* electric pitch */
+    --green-d:#0FB46C;
+    --gold:#FFC93C;         /* championship */
+    --coral:#FF4D6D;        /* energy / overtake */
+    --blue:#4D8DFF;
+    --ease:cubic-bezier(.22,1,.36,1);
+    --spring:cubic-bezier(.34,1.56,.64,1);
+    --maxw:1320px;
+  }
+  *{box-sizing:border-box}
+  ::selection{background:rgba(25,230,140,.3);color:#fff}
+  :focus-visible{outline:2px solid var(--green);outline-offset:3px;border-radius:8px}
+  html{scroll-behavior:smooth}
+  html,body{margin:0}
+  body{
+    background:var(--bg);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    color:var(--ink);
+    overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3{margin:0;line-height:1}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 40px}
+  .eyebrow{font-size:12px;letter-spacing:.28em;text-transform:uppercase;color:var(--green);font-weight:800}
+  .muted{color:var(--muted)}
+  .cond{font-family:"Arial Narrow","Helvetica Neue",system-ui;font-stretch:condensed;font-weight:900;text-transform:uppercase;letter-spacing:-.01em}
+
+  /* ============================ HERO ============================ */
+  .hero{position:relative;height:100vh;min-height:680px;overflow:hidden;display:flex;flex-direction:column;justify-content:center}
+  /* parallax stadium layers — far sky -> stands -> pitch -> foreground */
+  .layer{position:absolute;left:0;right:0;pointer-events:none}
+  .sky{inset:0;background:
+      radial-gradient(1400px 720px at 50% -8%, #1b2a52 0%, transparent 58%),
+      radial-gradient(900px 500px at 80% 0%, rgba(77,141,255,.18), transparent 60%),
+      linear-gradient(180deg,#070b16 0%, var(--sky) 50%, #0a1124 100%);}
+  /* stadium-light bloom */
+  .floods{inset:0;background:
+      conic-gradient(from 200deg at 12% -6%, transparent 0 18deg, rgba(255,201,60,.10) 24deg, transparent 30deg),
+      conic-gradient(from 160deg at 88% -6%, transparent 0 18deg, rgba(77,141,255,.10) 24deg, transparent 30deg);}
+  .stands{top:38%;height:34%;background:
+      repeating-linear-gradient(90deg, rgba(255,255,255,.025) 0 3px, transparent 3px 9px),
+      linear-gradient(180deg,#101a36, #0b1124);
+    transform:translateY(0);border-top:1px solid rgba(255,255,255,.05)}
+  /* twinkle crowd dots */
+  .crowd{top:40%;height:26%;opacity:.5;background-image:
+      radial-gradient(2px 2px at 10% 30%, rgba(25,230,140,.7), transparent),
+      radial-gradient(2px 2px at 30% 60%, rgba(255,201,60,.7), transparent),
+      radial-gradient(2px 2px at 52% 20%, rgba(255,77,109,.7), transparent),
+      radial-gradient(2px 2px at 70% 70%, rgba(77,141,255,.8), transparent),
+      radial-gradient(2px 2px at 88% 40%, rgba(255,255,255,.7), transparent),
+      radial-gradient(2px 2px at 20% 80%, rgba(255,255,255,.5), transparent),
+      radial-gradient(2px 2px at 62% 50%, rgba(25,230,140,.6), transparent),
+      radial-gradient(2px 2px at 42% 75%, rgba(255,201,60,.5), transparent);
+    animation:twinkle 4s ease-in-out infinite}
+  .pitch{bottom:0;height:30%;background:
+      radial-gradient(900px 280px at 50% 120%, rgba(25,230,140,.32), transparent 70%),
+      repeating-linear-gradient(90deg, rgba(25,230,140,.05) 0 70px, rgba(25,230,140,.10) 70px 140px),
+      linear-gradient(180deg, transparent, #06150f 75%);
+    border-top:2px solid rgba(25,230,140,.25);transform:perspective(500px) rotateX(34deg);transform-origin:bottom}
+
+  .hero-content{position:relative;z-index:5;text-align:center;padding-top:1vh}
+  .kicker{font-size:13px;letter-spacing:.36em;text-transform:uppercase;color:var(--gold);font-weight:800;opacity:0;animation:fade .8s .1s var(--ease) forwards}
+  .title{margin:18px 0 6px}
+  .title .l{display:block;overflow:hidden;perspective:600px}
+  .title .l span{display:block;transform:translateY(110%) rotateX(-40deg);transform-origin:top;opacity:0}
+  .anim .title .l span{animation:rise 1s var(--ease) forwards}
+  .anim .title .l:nth-child(1) span{animation-delay:.22s}
+  .anim .title .l:nth-child(2) span{animation-delay:.34s}
+  .title .big{font-size:clamp(64px,9.5vw,150px)}
+  .title .out{-webkit-text-stroke:2.5px var(--green);color:transparent}
+  .title .cup{color:var(--gold)}
+  .title .of{color:var(--ink)}
+  .ball{font-size:clamp(40px,5vw,70px);display:inline-block;transform-origin:center;opacity:0}
+  .anim .ball{animation:ballin 1s .55s var(--spring) both, spin 9s 1.6s linear infinite}
+  .sub{color:#c4cce0;font-size:clamp(15px,1.5vw,19px);max-width:560px;margin:14px auto 0;opacity:0;line-height:1.5}
+  .anim .sub{animation:fade .8s .85s var(--ease) forwards}
+  .cta-row{display:flex;gap:16px;justify-content:center;margin-top:34px;opacity:0}
+  .anim .cta-row{animation:fade .8s 1s var(--ease) forwards}
+  .btn{appearance:none;border:0;border-radius:15px;font-weight:800;font-size:17px;padding:17px 30px;cursor:pointer;font-family:inherit;
+    transition:transform .18s var(--spring),filter .2s,box-shadow .2s;text-decoration:none;display:inline-flex;align-items:center;gap:10px}
+  .btn:hover{transform:translateY(-3px)}
+  .btn:active{transform:translateY(0) scale(.97)}
+  .btn-primary{background:linear-gradient(180deg,var(--green),var(--green-d));color:#06231a;box-shadow:0 14px 34px -10px rgba(25,230,140,.7)}
+  .btn-primary:hover{box-shadow:0 18px 44px -10px rgba(25,230,140,.85)}
+  .btn-ghost{background:rgba(255,255,255,.05);color:var(--ink);border:1px solid var(--line);backdrop-filter:blur(6px)}
+  .disclaimer{font-size:12px;color:#7c87a3;margin-top:26px;opacity:0}
+  .anim .disclaimer{animation:fade .8s 1.2s var(--ease) forwards}
+  .scrollcue{position:absolute;bottom:26px;left:50%;transform:translateX(-50%);z-index:6;display:flex;flex-direction:column;align-items:center;gap:7px;color:var(--muted);font-size:11px;letter-spacing:.2em;text-transform:uppercase;opacity:0}
+  .anim .scrollcue{animation:fade 1s 1.5s var(--ease) forwards}
+  .mouse{width:24px;height:38px;border:2px solid var(--muted);border-radius:13px;position:relative}
+  .mouse:after{content:"";position:absolute;top:7px;left:50%;width:3px;height:7px;border-radius:2px;background:var(--green);transform:translateX(-50%);animation:wheel 1.6s infinite}
+
+  /* ============================ SECTION SHELL ============================ */
+  section.block{padding:96px 0;position:relative}
+  .sec-head{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:34px;flex-wrap:wrap}
+  .sec-title{font-size:clamp(30px,4vw,52px)}
+  .sec-sub{color:var(--muted);font-size:15px;max-width:520px;margin-top:10px;line-height:1.5}
+
+  /* ============================ RACE ============================ */
+  #race{background:linear-gradient(180deg,#080c16, var(--bg2));border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .scoreboard{display:flex;align-items:center;gap:14px;background:linear-gradient(180deg,#0b1326,#080d1a);border:1px solid var(--line);
+    border-radius:16px;padding:12px 18px;font-variant-numeric:tabular-nums;box-shadow:0 10px 30px -16px rgba(0,0,0,.7)}
+  .sb-led{font-family:"Courier New",monospace;font-weight:800;letter-spacing:.05em;color:var(--gold);font-size:15px;
+    text-shadow:0 0 12px rgba(255,201,60,.5)}
+  .sb-live{display:flex;align-items:center;gap:7px;color:var(--green);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.12em}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 0 0 rgba(25,230,140,.6);animation:pulse 2.2s infinite}
+  .mover{display:flex;align-items:center;gap:9px;background:rgba(255,201,60,.12);border:1px solid rgba(255,201,60,.45);color:var(--gold);
+    border-radius:999px;padding:8px 15px;font-size:13px;font-weight:800;opacity:0;transform:translateY(-8px) scale(.9)}
+  .mover.show{animation:popin .55s var(--spring) forwards}
+
+  /* the track */
+  .track{position:relative;margin-top:30px;border-radius:22px;overflow:hidden;
+    background:
+      linear-gradient(180deg,#0a1326,#070d1b);
+    border:1px solid var(--line);box-shadow:inset 0 1px 0 rgba(255,255,255,.04), 0 26px 60px -30px rgba(0,0,0,.9)}
+  /* shared quartile gridlines so spread reads the same across every lane */
+  .gridlines{position:absolute;inset:0;pointer-events:none;z-index:1}
+  .gridlines span{position:absolute;top:0;bottom:0;width:1px;background:rgba(255,255,255,.06)}
+  .gridlines span.q{background:repeating-linear-gradient(180deg, rgba(255,255,255,.10) 0 5px, transparent 5px 12px)}
+  .gridlines b{position:absolute;bottom:6px;transform:translateX(-50%);font-size:9px;font-weight:800;letter-spacing:.12em;
+    color:rgba(255,255,255,.28);text-transform:uppercase}
+  /* start + finish posts */
+  .post{position:absolute;top:0;bottom:0;width:2px;z-index:4}
+  .post.start{left:158px;background:rgba(255,255,255,.18)}
+  .post.finish{right:46px;background:repeating-linear-gradient(180deg,#fff 0 8px,#000 8px 16px);width:8px;opacity:.85;
+    box-shadow:0 0 22px rgba(255,255,255,.25)}
+  .post-flag{position:absolute;right:24px;top:8px;z-index:5;font-size:11px;font-weight:900;color:var(--gold);letter-spacing:.14em;text-transform:uppercase}
+  .post.start .lbl,.startlbl{position:absolute;left:120px;top:8px;z-index:5;font-size:11px;font-weight:800;color:var(--muted);letter-spacing:.14em;text-transform:uppercase}
+
+  .lanes{position:relative;padding:34px 0 18px}
+  .lane{position:relative;height:62px;display:flex;align-items:center}
+  .lane + .lane{border-top:1px dashed rgba(255,255,255,.05)}
+  /* battle-lane: the two contesting depts share ONE horizontal axis so one truly passes the other */
+  .lane.battle{height:96px;background:
+    linear-gradient(90deg, transparent 0 158px, rgba(255,77,109,.05) 158px);
+    border-radius:12px}
+  .lane.battle .battle-tag{position:absolute;left:170px;top:6px;z-index:6;font-size:9px;font-weight:800;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--coral);opacity:.85}
+  .lane.battle .info{width:140px}
+  .lane.battle .info .pts{display:none}
+  /* fixed left gutter: rank + name */
+  .lane .info{position:absolute;left:18px;width:130px;display:flex;align-items:center;gap:10px;z-index:6}
+  .lane .rankno{width:24px;height:24px;border-radius:7px;display:grid;place-items:center;font-weight:900;font-size:12px;
+    background:var(--card2);color:var(--muted);border:1px solid var(--line)}
+  .lane:nth-child(1) .rankno{background:linear-gradient(180deg,var(--gold),#d99e1f);color:#2a1d00;border-color:var(--gold)}
+  .lane .dept{font-weight:800;font-size:14px;letter-spacing:.01em}
+  .lane .pts{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+  /* the runner travels along the track via translateX */
+  .runner{position:absolute;left:0;top:50%;display:flex;align-items:center;gap:10px;
+    transform:translate(var(--x,160px),-50%);transition:transform 1.4s var(--spring);z-index:5;will-change:transform}
+  /* in the shared battle lane, runners sit on the same axis, nudged a hair so a pass stays legible */
+  .runner.upper{top:calc(50% - 15px)} .runner.lower{top:calc(50% + 15px)}
+  .runner.lead{z-index:9}
+  /* token disc: team colour + 2-letter initials, no emoji */
+  .mascot{position:relative;width:46px;height:46px;border-radius:50%;display:grid;place-items:center;
+    font-weight:900;font-size:16px;letter-spacing:.02em;color:#06120c;
+    background:radial-gradient(circle at 35% 28%, rgba(255,255,255,.32), transparent 58%), var(--c,#222);
+    box-shadow:0 6px 18px -6px rgba(0,0,0,.7), 0 0 0 2px rgba(255,255,255,.1) inset}
+  .running .mascot{animation:bound .55s var(--spring) infinite}
+  /* speed streaks behind the leader / movers */
+  .streak{position:absolute;right:100%;top:50%;width:0;height:3px;border-radius:3px;margin-right:4px;
+    background:linear-gradient(90deg,transparent,var(--c,#fff));opacity:0;transform:translateY(-50%)}
+  .running .streak{animation:streak .55s ease-in-out infinite}
+  .badge{font-size:12px;font-weight:800;color:#fff;white-space:nowrap;padding:3px 9px;border-radius:999px;
+    background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);font-variant-numeric:tabular-nums}
+  /* OVERTAKE flourish */
+  .overtake{position:absolute;z-index:20;font-family:"Arial Narrow",system-ui;font-stretch:condensed;font-weight:900;
+    font-size:26px;color:var(--coral);text-transform:uppercase;letter-spacing:.02em;pointer-events:none;
+    text-shadow:0 2px 0 #7a1228, 0 0 22px rgba(255,77,109,.7);opacity:0}
+  .overtake.go{animation:overtake 1.1s var(--spring) forwards}
+  /* confetti */
+  .confetti{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:15}
+  .confetti i{position:absolute;top:-14px;width:9px;height:14px;border-radius:2px;opacity:0}
+  .confetti.go i{animation:fall 1.5s ease-in forwards}
+
+  /* ============================ CONTENT ZONE ============================ */
+  .grid2{display:grid;grid-template-columns:1.05fr .95fr;gap:28px;align-items:start}
+  .panel{background:linear-gradient(180deg,var(--card),#101729);border:1px solid var(--line);border-radius:20px;padding:24px;
+    box-shadow:0 24px 60px -36px rgba(0,0,0,.8)}
+  .panel h3{font-size:20px;font-weight:800;display:flex;align-items:center;gap:10px}
+  .panel .ph-sub{color:var(--muted);font-size:13px;margin-top:6px}
+
+  /* picks */
+  .match{margin-top:16px;background:#0d1426;border:1px solid var(--line);border-radius:14px;padding:14px 16px;
+    transition:border-color .25s, transform .25s}
+  .match:hover{border-color:#33406a;transform:translateX(2px)}
+  .match .when{font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;display:flex;justify-content:space-between}
+  .pickrow{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+  .opt{appearance:none;border:1px solid var(--line);background:#11192e;color:var(--ink);border-radius:11px;padding:12px 8px;
+    cursor:pointer;font-family:inherit;font-weight:700;font-size:14px;display:flex;flex-direction:column;align-items:center;gap:5px;
+    transition:transform .15s var(--spring),border-color .2s,background .2s}
+  .opt .flag{font-size:20px}
+  .opt .res{font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+  .opt:hover{border-color:#3a4a78}
+  .opt:active{transform:scale(.95)}
+  .opt.sel{background:rgba(25,230,140,.14);border-color:var(--green);color:var(--green)}
+  .opt.sel .res{color:var(--green)}
+  .locked{margin-top:18px;display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--muted)}
+  .savechip{display:inline-flex;align-items:center;gap:7px;color:var(--green);font-weight:700;opacity:0;transition:opacity .3s}
+  .savechip.show{opacity:1}
+
+  /* leaderboard (relative) */
+  .lbrow{display:flex;align-items:center;gap:13px;padding:11px 12px;border-radius:12px;margin-top:7px;transition:background .2s}
+  .lbrow .pos{width:30px;font-weight:900;font-size:13px;color:var(--muted);text-align:center;font-variant-numeric:tabular-nums}
+  .lbrow .av{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-size:12px;font-weight:900;letter-spacing:.02em;
+    background:radial-gradient(circle at 35% 28%, rgba(255,255,255,.3), transparent 60%), var(--c,var(--card2));border:1px solid rgba(255,255,255,.12)}
+  .lbrow .nm{flex:1;font-weight:700;font-size:14px}
+  .lbrow .nm small{display:block;font-weight:600;color:var(--muted);font-size:11px}
+  .lbrow .sc{font-weight:800;font-variant-numeric:tabular-nums;font-size:14px}
+  .lbrow .delta{font-size:11px;font-weight:800;margin-left:8px}
+  .up{color:var(--green)} .down{color:var(--coral)} .flat{color:var(--muted)}
+  .lbrow.top1 .pos{color:var(--gold)}
+  .lbrow.me{background:linear-gradient(90deg,rgba(25,230,140,.14),rgba(25,230,140,.03));border:1px solid rgba(25,230,140,.4)}
+  .lbrow.me .nm{color:var(--green)}
+  .lb-divider{display:flex;align-items:center;gap:10px;margin:14px 4px;color:var(--muted);font-size:11px;letter-spacing:.14em;text-transform:uppercase}
+  .lb-divider:before,.lb-divider:after{content:"";flex:1;height:1px;background:var(--line)}
+  .percentile{margin-top:18px;background:#0d1426;border:1px solid var(--line);border-radius:14px;padding:16px 18px;
+    display:flex;align-items:center;justify-content:space-between;gap:16px}
+  .percentile .big{font-size:30px;font-weight:900;color:var(--gold);font-variant-numeric:tabular-nums;line-height:1}
+  .percentile .lab{font-size:12px;color:var(--muted);margin-top:4px}
+  .climb{text-align:right}
+  .climb .cb{display:inline-flex;align-items:center;gap:6px;color:var(--green);font-weight:800;font-size:15px}
+
+  /* footer */
+  footer{padding:50px 0 70px;text-align:center;color:#6b7596;font-size:12.5px;border-top:1px solid var(--line);line-height:1.7}
+  footer .cup{color:var(--gold);font-weight:800}
+
+  /* reveal on scroll */
+  .reveal{opacity:0;transform:translateY(26px);transition:opacity .7s var(--ease),transform .7s var(--ease)}
+  .reveal.in{opacity:1;transform:none}
+
+  /* ============================ KEYFRAMES ============================ */
+  @keyframes fade{to{opacity:1}}
+  @keyframes rise{to{transform:translateY(0) rotateX(0);opacity:1}}
+  @keyframes ballin{0%{transform:translateY(-40px) scale(.4);opacity:0}60%{opacity:1}100%{transform:translateY(0) scale(1);opacity:1}}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes twinkle{0%,100%{opacity:.4}50%{opacity:.62}}
+  @keyframes wheel{0%{opacity:1;transform:translate(-50%,0)}80%,100%{opacity:0;transform:translate(-50%,12px)}}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(25,230,140,.55)}70%{box-shadow:0 0 0 9px rgba(25,230,140,0)}100%{box-shadow:0 0 0 0 rgba(25,230,140,0)}}
+  @keyframes popin{to{opacity:1;transform:translateY(0) scale(1)}}
+  @keyframes bound{0%,100%{transform:translateY(0)}40%{transform:translateY(-9px)}}
+  @keyframes streak{0%{width:0;opacity:0}40%{width:30px;opacity:.85}100%{width:0;opacity:0}}
+  @keyframes overtake{0%{opacity:0;transform:translateY(8px) scale(.7) rotate(-6deg)}
+    30%{opacity:1;transform:translateY(0) scale(1.12) rotate(-3deg)}
+    70%{opacity:1;transform:scale(1) rotate(-3deg)}
+    100%{opacity:0;transform:translateY(-26px) scale(1) rotate(-3deg)}}
+  @keyframes fall{0%{opacity:1;transform:translateY(0) rotate(0)}100%{opacity:0;transform:translateY(360px) rotate(540deg)}}
+
+  /* ============================ REDUCED MOTION ============================ */
+  @media (prefers-reduced-motion: reduce){
+    html{scroll-behavior:auto}
+    *{animation-duration:.001s !important;animation-iteration-count:1 !important;transition-duration:.001s !important}
+    .title .l span,.ball,.kicker,.sub,.cta-row,.disclaimer,.scrollcue{opacity:1 !important;transform:none !important}
+    .reveal{opacity:1 !important;transform:none !important}
+    .runner{transition:none}
+    .crowd,.dot,.mouse:after{animation:none !important}
+  }
+
+  /* narrower desktop / fallback */
+  @media (max-width:980px){
+    .grid2{grid-template-columns:1fr}
+    .wrap{padding:0 22px}
+  }
+</style>
+</head>
+<body>
+
+<!-- ======================= HERO ======================= -->
+<header class="hero" id="top">
+  <div class="layer sky"></div>
+  <div class="layer floods"></div>
+  <div class="layer stands"></div>
+  <div class="layer crowd"></div>
+  <div class="layer pitch"></div>
+
+  <div class="hero-content wrap">
+    <div class="kicker">11 Jun – 19 Jul · 48 teams · 104 games</div>
+    <h1 class="title cond">
+      <span class="l"><span class="big out">WM 2026</span></span>
+      <span class="l"><span class="big"><span class="of">OFFICE</span> <span class="cup">CUP</span></span></span>
+    </h1>
+    <div class="ball">⚽</div>
+    <p class="sub">Call every winner. Carry your department up the table. Two minutes a round.</p>
+    <div class="cta-row">
+      <a href="#race" class="btn btn-primary">Join the cup <span aria-hidden="true">→</span></a>
+      <a href="#picks" class="btn btn-ghost">Make today's picks</a>
+    </div>
+    <p class="disclaimer">A private game by colleagues, for colleagues. Not an Enpal project — just for the bragging rights.</p>
+  </div>
+
+  <a href="#race" class="scrollcue" aria-label="See the race">
+    <span class="mouse"></span>
+    See the race ↓
+  </a>
+</header>
+
+<!-- ======================= DEPARTMENT RACE ======================= -->
+<section class="block" id="race">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div>
+        <div class="eyebrow">Department standings</div>
+        <h2 class="sec-title cond">The race</h2>
+        <p class="sec-sub">Every pick your colleagues make moves a runner. Ten departments, one finish line —
+          and the table breathing in real time.</p>
+      </div>
+      <div class="scoreboard reveal">
+        <div class="sb-live"><span class="dot"></span> Updated just now</div>
+        <div class="sb-led" id="clock">MATCHDAY&nbsp;07&nbsp;·&nbsp;14&nbsp;LIVE</div>
+      </div>
+    </div>
+
+    <div class="mover reveal" id="moverChip">Solar Ops jumped 3 — mover of the week</div>
+
+    <div class="track reveal" id="track">
+      <div class="gridlines" id="gridlines"></div>
+      <span class="startlbl">Start</span>
+      <span class="post start"></span>
+      <span class="post finish"></span>
+      <span class="post-flag">Finish</span>
+      <div class="lanes" id="lanes"><!-- runners injected --></div>
+      <div class="confetti" id="confetti"></div>
+    </div>
+    <p class="sec-sub reveal" style="margin-top:18px">Score is average points per active player — so small teams compete fairly.</p>
+  </div>
+</section>
+
+<!-- ======================= CONTENT ZONE ======================= -->
+<section class="block" id="picks">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div>
+        <div class="eyebrow">More than the race</div>
+        <h2 class="sec-title cond">Your matchday</h2>
+        <p class="sec-sub">Call a winner for each game, then see exactly where you stand — not buried at #47, but right where it matters.</p>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <!-- PICKS PANEL -->
+      <div class="panel reveal">
+        <h3>Your picks <span class="muted" style="font-size:13px;font-weight:600;">· Matchday 07 · 3 games</span></h3>
+        <p class="ph-sub">Tap who wins. Draws count too. Locked at kickoff.</p>
+        <div id="matches"><!-- matches injected --></div>
+        <div class="locked">
+          <span>3 of 3 picks in · for <strong style="color:var(--ink)">Solar Ops</strong></span>
+          <span class="savechip" id="savechip">Picks locked in. Good luck.</span>
+        </div>
+      </div>
+
+      <!-- LEADERBOARD PANEL -->
+      <div class="panel reveal">
+        <h3>Where you stand</h3>
+        <p class="ph-sub">Top of the cup — and the players within reach of you.</p>
+
+        <div class="lb-divider">Top of the cup</div>
+
+        <div class="lbrow top1"><span class="pos">1</span><span class="av" style="--c:#FFC93C;color:#2a1d00">MK</span>
+          <span class="nm">Mara K. <small>Finance</small></span><span class="sc">214</span><span class="delta up">▲2</span></div>
+        <div class="lbrow"><span class="pos">2</span><span class="av" style="--c:#19E68C;color:#06231a">JR</span>
+          <span class="nm">Jonas R. <small>Solar Ops</small></span><span class="sc">208</span><span class="delta flat">—</span></div>
+        <div class="lbrow"><span class="pos">3</span><span class="av" style="--c:#4D8DFF;color:#04122e">PV</span>
+          <span class="nm">Priya V. <small>Growth</small></span><span class="sc">201</span><span class="delta down">▼1</span></div>
+
+        <div class="lb-divider">Within reach</div>
+
+        <div class="lbrow"><span class="pos">11</span><span class="av" style="--c:#FF4D6D;color:#3a0512">TB</span>
+          <span class="nm">Tom B. <small>Field Sales</small></span><span class="sc">167</span><span class="delta up">▲1</span></div>
+        <div class="lbrow me"><span class="pos">12</span><span class="av" style="--c:#19E68C;color:#06231a">YO</span>
+          <span class="nm">You <small>Solar Ops</small></span><span class="sc">163</span><span class="delta up">▲4</span></div>
+        <div class="lbrow"><span class="pos">13</span><span class="av" style="--c:#A78BFA;color:#1a0d3a">SL</span>
+          <span class="nm">Sara L. <small>People</small></span><span class="sc">159</span><span class="delta down">▼2</span></div>
+
+        <div class="percentile">
+          <div>
+            <div class="big" id="pct">Top 7%</div>
+            <div class="lab">of 180 players in the cup</div>
+          </div>
+          <div class="climb">
+            <div class="cb">▲ 4 places <span aria-hidden="true">↑</span></div>
+            <div class="lab">this round · keep climbing</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div><span class="cup">WM 2026 Office Cup</span> · built for the people who actually watch the matches.</div>
+  <div style="margin-top:8px">A private game by colleagues, for colleagues. Not an Enpal project — just for the bragging rights.</div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ---- hero intro ---- */
+  document.body.classList.add("anim");
+
+  /* ---- reveal on scroll ---- */
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add("in"); io.unobserve(e.target);} });
+  },{threshold:.18});
+  document.querySelectorAll(".reveal").forEach(function(el){ io.observe(el); });
+
+  /* ============ THE RACE ============
+     Each dept has a true FINAL position (`end`, 0..1 across the track). RANKS ARE DERIVED
+     from `end` (sorted desc) AFTER the runners settle, so the printed rank can never
+     disagree with the dot order. The two contesting depts (battle:true) share ONE axis
+     in a battle-lane, so the overtaker physically passes the other on the same line. */
+  var depts = [
+    {name:"Finance",    init:"FI", c:"#FFC93C", ink:"#2a1d00", start:0.66, end:0.94},
+    {name:"Solar Ops",  init:"SO", c:"#19E68C", ink:"#06231a", start:0.46, end:0.88, battle:true, mover:true}, // overtaker (starts behind)
+    {name:"Growth",     init:"GR", c:"#4D8DFF", ink:"#04122e", start:0.74, end:0.80, battle:true},             // overtaken (starts ahead)
+    {name:"Field Sales",init:"FS", c:"#FF4D6D", ink:"#3a0512", start:0.50, end:0.66},
+    {name:"Product",    init:"PR", c:"#A78BFA", ink:"#1a0d3a", start:0.42, end:0.55},
+    {name:"People",     init:"PE", c:"#34D399", ink:"#062b1d", start:0.30, end:0.44},
+    {name:"Support",    init:"SU", c:"#F472B6", ink:"#3a0820", start:0.22, end:0.33},
+    {name:"Legal",      init:"LE", c:"#FBBF24", ink:"#2a1d00", start:0.16, end:0.22},
+    {name:"IT",         init:"IT", c:"#60A5FA", ink:"#04122e", start:0.10, end:0.14},
+    {name:"Logistics",  init:"LO", c:"#FB923C", ink:"#3a1a00", start:0.05, end:0.08},
+  ];
+
+  /* derive points + rank from final position so printed rank == dot order, always */
+  var sortedByEnd = depts.slice().sort(function(a,b){ return b.end - a.end; });
+  sortedByEnd.forEach(function(d,i){ d.rank = i+1; d.pts = 218 - i*16; });
+
+  var lanesEl = document.getElementById("lanes");
+  var GUTTER = 170;   // px reserved on the left for info column + start post
+  function trackSpan(){ return Math.max(420, document.getElementById("track").clientWidth - GUTTER - 80); }
+  function xFor(frac){ return GUTTER + frac * trackSpan(); }
+
+  function runnerHTML(d, pos){
+    return '<div class="runner '+(pos||"")+'" data-name="'+d.name+'" style="--c:'+d.c+'">'+
+      '<span class="streak"></span>'+
+      '<span class="mascot" style="--c:'+d.c+';color:'+d.ink+'">'+d.init+'</span>'+
+      '<span class="badge">'+d.pts+'</span></div>';
+  }
+  function infoHTML(d){
+    var gold = d.rank===1 ? ' style="background:linear-gradient(180deg,var(--gold),#d99e1f);color:#2a1d00;border-color:var(--gold)"':'';
+    return '<span class="rankno"'+gold+'>'+d.rank+'</span>'+
+      '<div><div class="dept">'+d.name+'</div><div class="pts">'+d.pts+' pts</div></div>';
+  }
+
+  /* render lanes in FINAL RANK ORDER. The two battlers collapse into one shared battle-lane. */
+  var battlers = sortedByEnd.filter(function(d){ return d.battle; }); // [higher-rank, lower-rank] by end
+  var battleDrawn = false;
+  sortedByEnd.forEach(function(d){
+    if(d.battle){
+      if(battleDrawn) return; battleDrawn = true;
+      var lane = document.createElement("div");
+      lane.className = "lane battle";
+      var hi = battlers[0], lo = battlers[1]; // hi ends ahead
+      lane.innerHTML =
+        '<span class="battle-tag">Same line · the pass</span>'+
+        '<div class="info" style="top:calc(50% - 15px);transform:translateY(-50%)">'+infoHTML(hi)+'</div>'+
+        '<div class="info" style="top:calc(50% + 15px);transform:translateY(-50%)">'+infoHTML(lo)+'</div>'+
+        runnerHTML(hi,"upper") + runnerHTML(lo,"lower");
+      lanesEl.appendChild(lane);
+      hi._el = lane.querySelector('.runner[data-name="'+hi.name+'"]');
+      lo._el = lane.querySelector('.runner[data-name="'+lo.name+'"]');
+    } else {
+      var l = document.createElement("div");
+      l.className = "lane";
+      l.innerHTML = '<div class="info">'+infoHTML(d)+'</div>'+runnerHTML(d);
+      lanesEl.appendChild(l);
+      d._el = l.querySelector(".runner");
+    }
+  });
+
+  depts.forEach(function(d){ d._el.style.setProperty("--x", xFor(d.start)+"px"); });
+
+  /* shared quartile gridlines + finish line, so spread reads the same across lanes */
+  (function buildGrid(){
+    var g = document.getElementById("gridlines");
+    [[0,"start","25%"],[.25,"q","25%"],[.5,"q","50%"],[.75,"q","75%"],[1,"finish","Finish"]].forEach(function(t){
+      var s = document.createElement("span");
+      s.style.left = xFor(t[0]) + "px";
+      if(t[1]==="q") s.className = "q";
+      g.appendChild(s);
+      if(t[1]==="q"){ var b=document.createElement("b"); b.style.left=xFor(t[0])+"px"; b.textContent=t[2]; g.appendChild(b); }
+    });
+  })();
+
+  /* animate runners to final positions when the track scrolls in. The battler that starts
+     BEHIND is released a beat later, so its pass across the other is visible, not instant. */
+  var raceStarted = false;
+  function startRace(){
+    if(raceStarted) return; raceStarted = true;
+    sortedByEnd.forEach(function(d,i){
+      var delay = reduce ? 0 : (d.battle && d===battlers[0] ? 700 : 200 + i*85); // overtaker lags, then surges
+      setTimeout(function(){
+        d._el.classList.add("running");
+        if(d===battlers[0]) d._el.classList.add("lead"); // overtaker rides on top during the pass
+        d._el.style.setProperty("--x", xFor(d.end)+"px");
+        if(!reduce) setTimeout(function(){ d._el.classList.remove("running"); }, 1800);
+      }, delay);
+    });
+
+    if(!reduce){
+      setTimeout(fireOvertake, 1600);  // fires as the overtaker crosses the other on the shared line
+      setTimeout(fireConfetti, 1900);
+      setTimeout(function(){ document.getElementById("moverChip").classList.add("show"); }, 900);
+    } else {
+      document.getElementById("moverChip").classList.add("show");
+    }
+  }
+
+  function fireOvertake(){
+    var hi = battlers[0]; // the one that passes
+    var o = document.createElement("div");
+    o.className = "overtake";
+    o.textContent = "Overtake";
+    var laneTop = hi._el.closest(".lane").offsetTop;
+    // place at the midpoint between the two final positions — where the pass actually happens
+    o.style.left = (xFor((hi.end + battlers[1].end)/2) - 4) + "px";
+    o.style.top = (laneTop + 2) + "px";
+    document.getElementById("lanes").appendChild(o);
+    requestAnimationFrame(function(){ o.classList.add("go"); });
+    setTimeout(function(){ o.remove(); }, 1300);
+  }
+
+  function fireConfetti(){
+    var box = document.getElementById("confetti");
+    var colors = ["#19E68C","#FFC93C","#FF4D6D","#4D8DFF","#fff"];
+    for(var k=0;k<34;k++){
+      var p = document.createElement("i");
+      p.style.left = (60 + Math.random()*84) + "%";
+      p.style.background = colors[k%colors.length];
+      p.style.animationDelay = (Math.random()*.35)+"s";
+      p.style.transform = "rotate("+(Math.random()*180)+"deg)";
+      box.appendChild(p);
+    }
+    box.classList.add("go");
+    setTimeout(function(){ box.classList.remove("go"); box.innerHTML=""; }, 2200);
+  }
+
+  // trigger race when the track is ~60% into view
+  var trackIO = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){ if(e.isIntersecting){ startRace(); trackIO.disconnect(); } });
+  },{threshold:.45});
+  trackIO.observe(document.getElementById("track"));
+
+  // keep positions correct on resize (runners + gridlines stay aligned to the same scale)
+  var rt;
+  window.addEventListener("resize", function(){
+    clearTimeout(rt);
+    rt = setTimeout(function(){
+      depts.forEach(function(d){
+        var frac = raceStarted ? d.end : d.start;
+        d._el.style.setProperty("--x", xFor(frac)+"px");
+      });
+      var g = document.getElementById("gridlines");
+      var lines = g.querySelectorAll("span"), labels = g.querySelectorAll("b");
+      var fr = [0,.25,.5,.75,1];
+      lines.forEach(function(s,k){ s.style.left = xFor(fr[k])+"px"; });
+      labels.forEach(function(b,k){ b.style.left = xFor([.25,.5,.75][k])+"px"; });
+    },120);
+  });
+
+  /* ============ LIVE SCOREBOARD TICKER ============ */
+  if(!reduce){
+    var live = 14;
+    setInterval(function(){
+      live += (Math.random()<.5? -1 : 1);
+      if(live<8) live=8; if(live>22) live=22;
+      var pad = (live<10?"0":"")+live;
+      document.getElementById("clock").innerHTML = "MATCHDAY&nbsp;07&nbsp;·&nbsp;"+pad+"&nbsp;LIVE";
+    }, 3200);
+  }
+
+  /* ============ PICKS ============ */
+  var matches = [
+    {a:"🇧🇷",b:"🇩🇪",an:"Brazil",bn:"Germany",when:"Today · 18:00"},
+    {a:"🇫🇷",b:"🇦🇷",an:"France",bn:"Argentina",when:"Today · 20:30"},
+    {a:"🇪🇸",b:"🇵🇹",an:"Spain",bn:"Portugal",when:"Tomorrow · 17:00"},
+  ];
+  var mEl = document.getElementById("matches");
+  matches.forEach(function(m,i){
+    var card = document.createElement("div");
+    card.className = "match";
+    card.innerHTML =
+      '<div class="when"><span>'+m.an+' vs '+m.bn+'</span><span>'+m.when+'</span></div>'+
+      '<div class="pickrow" data-m="'+i+'">'+
+        '<button class="opt" data-v="home"><span class="flag">'+m.a+'</span><span class="res">'+m.an+'</span></button>'+
+        '<button class="opt" data-v="draw"><span style="font-size:18px;font-weight:900">=</span><span class="res">Draw</span></button>'+
+        '<button class="opt" data-v="away"><span class="flag">'+m.b+'</span><span class="res">'+m.bn+'</span></button>'+
+      '</div>';
+    mEl.appendChild(card);
+  });
+  // preselect a couple to look "already played"
+  function presel(mi, v){
+    var row = mEl.querySelector('.pickrow[data-m="'+mi+'"]');
+    if(row) row.querySelector('.opt[data-v="'+v+'"]').classList.add("sel");
+  }
+  presel(0,"home"); presel(1,"away");
+
+  var saveTimer;
+  mEl.addEventListener("click", function(ev){
+    var btn = ev.target.closest(".opt"); if(!btn) return;
+    var row = btn.closest(".pickrow");
+    row.querySelectorAll(".opt").forEach(function(o){ o.classList.remove("sel"); });
+    btn.classList.add("sel");
+    if(!reduce){
+      btn.animate(
+        [{transform:"scale(1)"},{transform:"scale(1.06)"},{transform:"scale(1)"}],
+        {duration:260, easing:"cubic-bezier(.34,1.56,.64,1)"}
+      );
+    }
+    var chip = document.getElementById("savechip");
+    chip.classList.add("show");
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(function(){ chip.classList.remove("show"); }, 1600);
+  });
+
+})();
+</script>
+</body>
+</html>

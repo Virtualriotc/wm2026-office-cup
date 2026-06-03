@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>WM 2026 Office Cup — Tiefbau</title>
+<style>
+  :root{
+    /* backlit signage panel base */
+    --ink:#0E1116;
+    --ink-2:#11151c;
+    --panel:#0b0e13;
+    --hair:rgba(255,255,255,.06);
+    --hair-2:rgba(255,255,255,.10);
+    --text:#e9edf3;
+    --text-dim:#9aa6b6;
+    --text-faint:#5d6878;
+
+    /* materials */
+    --sodium:#F4A742;      /* freshly-laid live track + overtake sweep */
+    --sodium-hot:#ffce8a;
+    --steel:#7C8AA0;       /* ghosted / unbuilt track */
+    --steel-dim:rgba(124,138,160,.32);
+    --gold:#FFD884;        /* terminus bloom */
+
+    --ease:cubic-bezier(.16,1,.3,1);
+    --ease-mech:cubic-bezier(.2,.9,.25,1);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{
+    background:
+      radial-gradient(120% 90% at 50% -10%, #161b24 0%, var(--ink) 55%, #090b0f 100%);
+    color:var(--text);
+    font-family:"Helvetica Neue",Helvetica,"Inter","Segoe UI",system-ui,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    overflow:hidden;
+    letter-spacing:.01em;
+  }
+  /* faint isometric grid + grain for depth */
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.5;
+    background-image:radial-gradient(rgba(255,255,255,.5) .5px,transparent .6px);
+    background-size:30px 30px;mix-blend-mode:overlay;
+  }
+  .stage{
+    position:fixed;inset:0;z-index:1;
+    display:grid;
+    grid-template-rows:auto 1fr auto;
+  }
+
+  /* ---------- top signage bar ---------- */
+  header{
+    display:flex;align-items:center;gap:14px;
+    padding:14px 20px;
+    border-bottom:1px solid var(--hair);
+    background:linear-gradient(180deg, rgba(13,17,23,.85), rgba(13,17,23,0));
+    backdrop-filter:blur(2px);
+  }
+  .roundel{
+    width:34px;height:34px;border-radius:50%;
+    border:3px solid var(--sodium);
+    display:grid;place-items:center;flex:0 0 auto;
+    box-shadow:0 0 18px rgba(244,167,66,.35), inset 0 0 10px rgba(244,167,66,.15);
+  }
+  .roundel b{
+    display:block;width:18px;height:3px;background:var(--sodium);border-radius:2px;
+  }
+  .titles{display:flex;flex-direction:column;line-height:1.15;}
+  .titles .k{font-size:11px;letter-spacing:.22em;color:var(--text-faint);text-transform:uppercase;}
+  .titles .t{font-size:15px;font-weight:700;letter-spacing:.04em;}
+  .titles .t span{color:var(--sodium);}
+  .clock{
+    margin-left:auto;display:flex;align-items:center;gap:10px;
+    font-variant-numeric:tabular-nums;font-size:12px;color:var(--text-dim);
+  }
+  .live-dot{width:8px;height:8px;border-radius:50%;background:#3ad37a;box-shadow:0 0 10px #3ad37a;}
+  @keyframes blip{0%,100%{opacity:1;}50%{opacity:.25;}}
+  .live-dot{animation:blip 2.4s ease-in-out infinite;}
+
+  /* ---------- map viewport ---------- */
+  .map-wrap{position:relative;overflow:hidden;}
+  /* the tilt happens here so the whole network rocks during overtake */
+  #tiltGroup{
+    position:absolute;inset:0;
+    transform-origin:50% 56%;
+    transform:perspective(1400px) rotateX(0deg);
+    transition:transform .5s var(--ease-mech);
+    will-change:transform;
+  }
+  svg.net{width:100%;height:100%;display:block;}
+
+  /* legend / department key, lower-left, floating signage chip */
+  .legend{
+    position:absolute;left:16px;bottom:16px;z-index:6;
+    background:rgba(10,13,18,.66);
+    border:1px solid var(--hair-2);
+    border-radius:12px;padding:12px 13px;
+    backdrop-filter:blur(8px);
+    max-width:min(46vw,260px);
+  }
+  .legend h4{margin:0 0 9px;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--text-faint);font-weight:700;}
+  .lrow{display:flex;align-items:center;gap:9px;padding:3px 0;font-size:12px;color:var(--text-dim);}
+  .lrow .swatch{width:14px;height:4px;border-radius:3px;flex:0 0 auto;}
+  .lrow .name{flex:1 1 auto;color:var(--text);}
+  .lrow .dist{font-variant-numeric:tabular-nums;color:var(--text-faint);font-size:11px;}
+  .lrow.you .name{color:var(--sodium);font-weight:700;}
+  .lrow.you::after{content:"YOU";font-size:8px;letter-spacing:.16em;color:var(--ink);background:var(--sodium);
+    border-radius:4px;padding:2px 4px;font-weight:800;}
+  .lrow.lead .dist::before{content:"▲ ";color:#3ad37a;}
+
+  /* personal pod, lower-right */
+  .pod{
+    position:absolute;right:16px;bottom:16px;z-index:6;
+    background:rgba(10,13,18,.66);
+    border:1px solid var(--hair-2);
+    border-radius:12px;padding:12px 14px;
+    backdrop-filter:blur(8px);
+    width:172px;
+  }
+  .pod h4{margin:0 0 6px;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--text-faint);font-weight:700;}
+  .pod .big{font-size:26px;font-weight:800;color:var(--sodium);font-variant-numeric:tabular-nums;line-height:1;}
+  .pod .sub{font-size:11px;color:var(--text-dim);margin-top:5px;}
+  .pod .meter{height:5px;border-radius:3px;background:rgba(255,255,255,.08);margin-top:9px;overflow:hidden;}
+  .pod .meter i{display:block;height:100%;width:64%;border-radius:3px;
+    background:linear-gradient(90deg,var(--steel),var(--sodium));}
+
+  /* a floating "you are here" tag rendered in HTML over the SVG so text stays crisp */
+  /* status toast for the overtake narration */
+  .toast{
+    position:absolute;left:50%;top:18px;transform:translate(-50%,-14px);
+    z-index:8;
+    background:rgba(244,167,66,.14);
+    border:1px solid rgba(244,167,66,.5);
+    color:var(--sodium-hot);
+    padding:8px 16px;border-radius:999px;
+    font-size:12.5px;font-weight:700;letter-spacing:.04em;
+    box-shadow:0 8px 30px rgba(244,167,66,.18);
+    opacity:0;pointer-events:none;
+    transition:opacity .45s var(--ease), transform .45s var(--ease);
+    white-space:nowrap;
+  }
+  .toast.show{opacity:1;transform:translate(-50%,0);}
+
+  /* ---------- bottom control rail ---------- */
+  footer{
+    border-top:1px solid var(--hair);
+    background:linear-gradient(0deg, rgba(13,17,23,.9), rgba(13,17,23,0));
+    padding:12px 18px 16px;
+    display:flex;align-items:center;gap:14px;
+  }
+  .next{display:flex;flex-direction:column;line-height:1.2;}
+  .next .k{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--text-faint);}
+  .next .m{font-size:13px;color:var(--text);font-weight:600;margin-top:2px;}
+  .next .m em{color:var(--text-faint);font-style:normal;}
+
+  .pickwrap{margin-left:auto;display:flex;gap:8px;}
+  .pick{
+    appearance:none;border:1px solid var(--hair-2);
+    background:rgba(255,255,255,.03);color:var(--text-dim);
+    border-radius:11px;padding:9px 14px;min-width:54px;
+    font-size:13px;font-weight:700;letter-spacing:.05em;cursor:pointer;
+    transition:transform .18s var(--ease-mech), background .18s, color .18s, border-color .18s, box-shadow .18s;
+    position:relative;overflow:hidden;
+  }
+  .pick:hover{color:var(--text);border-color:var(--steel);transform:translateY(-1px);}
+  .pick:active{transform:translateY(0) scale(.96);}
+  .pick.armed{
+    background:var(--sodium);color:#16110a;border-color:var(--sodium);
+    box-shadow:0 0 0 1px var(--sodium),0 8px 22px rgba(244,167,66,.32);
+  }
+  .pick .lbl{display:block;font-size:9px;letter-spacing:.14em;opacity:.7;font-weight:700;margin-top:1px;}
+  .replay{
+    appearance:none;border:1px solid var(--hair-2);background:transparent;color:var(--text-faint);
+    border-radius:10px;padding:8px 12px;font-size:11px;letter-spacing:.08em;cursor:pointer;
+    transition:color .2s,border-color .2s;
+  }
+  .replay:hover{color:var(--sodium);border-color:rgba(244,167,66,.5);}
+
+  /* clack ripple on a thrown switch */
+  @keyframes clackpop{0%{transform:scale(1);}40%{transform:scale(1.14);}100%{transform:scale(1);}}
+
+  /* reduced-motion: kill the long animations, present a calm built map */
+  @media (prefers-reduced-motion: reduce){
+    #tiltGroup{transition:none;}
+    .toast{transition:opacity .2s;}
+    .live-dot{animation:none;}
+    *{scroll-behavior:auto;}
+  }
+
+  /* small screens: stack the footer a little tighter, shrink pods */
+  @media (max-width:560px){
+    .legend{max-width:44vw;padding:10px;}
+    .pod{width:138px;padding:10px;}
+    .pod .big{font-size:21px;}
+    .next .m{font-size:12px;}
+    .pick{min-width:46px;padding:8px 10px;}
+    header{padding:11px 14px;}
+  }
+  @media (max-height:560px){
+    .legend,.pod{bottom:10px;}
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+
+  <header>
+    <div class="roundel"><b></b></div>
+    <div class="titles">
+      <span class="k">WM 2026 · Office Cup</span>
+      <span class="t">TIEFBAU <span>— the department subway</span></span>
+    </div>
+    <div class="clock">
+      <span class="live-dot"></span>
+      <span id="matchday">Matchday 9 · digging live</span>
+    </div>
+  </header>
+
+  <main class="map-wrap" id="mapWrap">
+    <div id="tiltGroup">
+      <!-- isometric corridor: lines descend toward a single golden terminus at bottom.
+           viewBox is tall; vertical = forward distance drilled (= rank). -->
+      <svg class="net" id="net" viewBox="0 0 800 900" preserveAspectRatio="xMidYMid meet" aria-label="Department subway network being dug toward the trophy terminus">
+        <defs>
+          <!-- terminus gold bloom -->
+          <radialGradient id="gTerminus" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#FFE9B0"/>
+            <stop offset="42%" stop-color="#FFD884"/>
+            <stop offset="100%" stop-color="rgba(255,216,132,0)"/>
+          </radialGradient>
+          <!-- soft glow for live track -->
+          <filter id="fGlow" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="3.2" result="b"/>
+            <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          <!-- depth-pass blur applied to the dived-under tunnel -->
+          <filter id="fDive" x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur stdDeviation="0" result="db"/>
+          </filter>
+          <!-- isometric strata grid (faint) -->
+          <pattern id="iso" width="56" height="32" patternUnits="userSpaceOnUse" patternTransform="skewX(-18)">
+            <path d="M0 0 H56 M0 16 H56" stroke="rgba(255,255,255,.045)" stroke-width="1"/>
+          </pattern>
+          <linearGradient id="vignette" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="rgba(0,0,0,0)"/>
+            <stop offset="86%" stop-color="rgba(0,0,0,0)"/>
+            <stop offset="100%" stop-color="rgba(0,0,0,.45)"/>
+          </linearGradient>
+        </defs>
+
+        <!-- faint depth grid, skewed for isometric read -->
+        <rect x="-200" y="0" width="1200" height="900" fill="url(#iso)"/>
+
+        <!-- terminus: the trophy station, soft gold bloom at the bottom -->
+        <g id="terminus">
+          <circle cx="400" cy="828" r="120" fill="url(#gTerminus)" opacity=".9"/>
+          <circle cx="400" cy="828" r="26" fill="none" stroke="#FFD884" stroke-width="2.5" opacity=".9"/>
+          <circle cx="400" cy="828" r="13" fill="#FFD884"/>
+          <!-- tiny trophy glyph -->
+          <path d="M392 822 h16 v5 q0 8 -8 8 q-8 0 -8 -8 z M390 822 q-6 0 -6 -6 v-3 h6 M410 822 q6 0 6 -6 v-3 h-6 M396 835 h8 v4 h-8 z M390 840 h20 v3 h-20 z"
+                fill="#1a130a" opacity=".82"/>
+          <text x="400" y="876" text-anchor="middle" font-size="11" letter-spacing="3"
+                fill="#FFD884" font-family="inherit" opacity=".85">TERMINUS · DER POKAL</text>
+        </g>
+
+        <!-- All line paths get authored as splines in an isometric corridor.
+             Each line has TWO copies of the same path:
+               .ghost  = full unbuilt route (steel, dashed faint) drawn the entire length
+               .live   = laid rail, revealed via stroke-dashoffset up to the boring head
+             A boring-head puck rides the end of the live portion. -->
+        <g id="lines" stroke-linecap="round" fill="none"></g>
+
+        <!-- junction signals (today's matches) float just ahead of active heads -->
+        <g id="signals"></g>
+
+        <!-- collective "you are here" marker rides the lead line -->
+        <g id="youHere">
+          <circle r="9" fill="none" stroke="#fff" stroke-width="1.5" opacity=".85"/>
+          <circle r="3.5" fill="#fff"/>
+        </g>
+
+        <rect x="0" y="0" width="800" height="900" fill="url(#vignette)" pointer-events="none"/>
+      </svg>
+    </div>
+
+    <div class="toast" id="toast">OPS dives under SALES — overtake at Junction 7</div>
+
+    <!-- department key -->
+    <div class="legend">
+      <h4>Boring lines · depth = rank</h4>
+      <div id="legendRows"></div>
+    </div>
+
+    <!-- personal pod -->
+    <div class="pod">
+      <h4>Your pick vs Ops avg</h4>
+      <div class="big" id="podDelta">+34<span style="font-size:13px;color:var(--text-dim);font-weight:600;"> m</span></div>
+      <div class="sub">You're drilling ahead of your own line</div>
+      <div class="meter"><i></i></div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="next">
+      <span class="k">Junction signal ahead · throw the switch</span>
+      <span class="m" id="fixture">Deutschland <em>vs</em> Brasilien — kickoff 18:00</span>
+    </div>
+    <div class="pickwrap" role="group" aria-label="Pick the result">
+      <button class="pick" data-r="H">DE<span class="lbl">HOME</span></button>
+      <button class="pick" data-r="D">X<span class="lbl">DRAW</span></button>
+      <button class="pick" data-r="A">BR<span class="lbl">AWAY</span></button>
+    </div>
+    <button class="replay" id="replay" title="Replay the overtake">↻ overtake</button>
+  </footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  const SVGNS = "http://www.w3.org/2000/svg";
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // ---- Department model. One golden terminus at (400,828). ----
+  // Each line is an authored spline through the isometric corridor. Lines can ONLY
+  // advance along their own spline (no free-routing => no spaghetti/label collisions).
+  // `progress` 0..1 = fraction of spline drilled = forward distance = rank.
+  const DEPTS = [
+    { id:"ops",   name:"Ops",        hue:"#46c08a", progress:0.62, you:true,
+      d:"M150 70 C 150 220, 250 300, 300 400 S 320 600, 360 700 S 392 790, 400 820" },
+    { id:"sales", name:"Sales",      hue:"#e0574e", progress:0.66,
+      d:"M300 60 C 320 200, 250 320, 300 430 S 380 580, 380 690 S 396 788, 400 820" },
+    { id:"tech",  name:"Tech",       hue:"#5b8fe0", progress:0.50,
+      d:"M470 60 C 470 210, 430 320, 430 430 S 410 600, 405 700 S 402 790, 400 820" },
+    { id:"cs",    name:"CS",         hue:"#e0b94e", progress:0.44,
+      d:"M620 70 C 600 220, 560 320, 520 440 S 470 600, 440 700 S 412 790, 400 820" },
+    { id:"reten", name:"Retention",  hue:"#9b6fe0", progress:0.36,
+      d:"M700 90 C 690 240, 640 340, 580 460 S 500 620, 460 720 S 420 795, 400 820" },
+    { id:"mkt",   name:"Marketing",  hue:"#48c6cf", progress:0.30,
+      d:"M70 100 C 90 250, 160 340, 230 470 S 320 630, 360 725 S 392 796, 400 820" },
+  ];
+
+  const linesG   = document.getElementById("lines");
+  const signalsG = document.getElementById("signals");
+  const youHere  = document.getElementById("youHere");
+  const toast    = document.getElementById("toast");
+  const legendRows = document.getElementById("legendRows");
+
+  // build the paths + boring heads
+  DEPTS.forEach(dep=>{
+    // ghost (full unbuilt route)
+    const ghost = document.createElementNS(SVGNS,"path");
+    ghost.setAttribute("d", dep.d);
+    ghost.setAttribute("stroke","#7C8AA0");
+    ghost.setAttribute("stroke-width","3");
+    ghost.setAttribute("opacity",".22");
+    ghost.setAttribute("stroke-dasharray","2 7");
+    linesG.appendChild(ghost);
+
+    // live (laid rail), revealed by dashoffset
+    const live = document.createElementNS(SVGNS,"path");
+    live.setAttribute("d", dep.d);
+    live.setAttribute("stroke", dep.you ? "#F4A742" : dep.hue);
+    live.setAttribute("stroke-width", dep.you ? "5" : "4");
+    live.setAttribute("opacity", dep.you ? "1" : ".92");
+    if(dep.you) live.setAttribute("filter","url(#fGlow)");
+    linesG.appendChild(live);
+
+    // boring head puck
+    const head = document.createElementNS(SVGNS,"g");
+    const ring = document.createElementNS(SVGNS,"circle");
+    ring.setAttribute("r", dep.you ? "8.5" : "6.5");
+    ring.setAttribute("fill","none");
+    ring.setAttribute("stroke", dep.you ? "#ffce8a" : dep.hue);
+    ring.setAttribute("stroke-width","2.5");
+    const core = document.createElementNS(SVGNS,"circle");
+    core.setAttribute("r", dep.you ? "4" : "3");
+    core.setAttribute("fill", dep.you ? "#ffce8a" : dep.hue);
+    head.appendChild(ring); head.appendChild(core);
+    head.setAttribute("filter", dep.you ? "url(#fGlow)" : "");
+    linesG.appendChild(head);
+
+    dep._ghost = ghost; dep._live = live; dep._head = head; dep._ring = ring;
+    dep._len = live.getTotalLength();
+    // start fully hidden; we draw to progress
+    live.style.strokeDasharray = dep._len;
+    live.style.strokeDashoffset = dep._len;
+  });
+
+  function pointAt(dep, t){
+    const L = dep._len * Math.max(0, Math.min(1, t));
+    return dep._live.getPointAtLength(L);
+  }
+  // place a line's laid rail + head at fraction t
+  function setProgress(dep, t, animate){
+    t = Math.max(0, Math.min(1, t));
+    const off = dep._len * (1 - t);
+    if(animate && !reduced){
+      dep._live.style.transition = "stroke-dashoffset .9s cubic-bezier(.16,1,.3,1)";
+    } else {
+      dep._live.style.transition = "none";
+    }
+    dep._live.style.strokeDashoffset = off;
+    const p = pointAt(dep, t);
+    dep._head.setAttribute("transform", `translate(${p.x},${p.y})`);
+    dep.progress = t;
+  }
+
+  // initial layout (instant)
+  DEPTS.forEach(d=> setProgress(d, d.progress, false));
+
+  // "you are here" rides the collective LEAD line head
+  function leadDept(){ return DEPTS.slice().sort((a,b)=>b.progress-a.progress)[0]; }
+  function placeYouHere(){
+    const ld = leadDept();
+    const p = pointAt(ld, ld.progress);
+    youHere.setAttribute("transform", `translate(${p.x},${p.y - 18})`);
+  }
+  placeYouHere();
+
+  // ---- legend ----
+  function renderLegend(){
+    const ordered = DEPTS.slice().sort((a,b)=>b.progress-a.progress);
+    legendRows.innerHTML = "";
+    ordered.forEach((d,i)=>{
+      const row = document.createElement("div");
+      row.className = "lrow" + (d.you ? " you":"") + (i===0 ? " lead":"");
+      const meters = Math.round(d.progress*1200);
+      row.innerHTML =
+        `<span class="swatch" style="background:${d.you?'var(--sodium)':d.hue}"></span>`+
+        `<span class="name">${d.name}</span>`+
+        `<span class="dist">${meters} m</span>`;
+      legendRows.appendChild(row);
+    });
+  }
+  renderLegend();
+
+  // ---- junction signals (today's matches) float just ahead of each active head ----
+  // For the teaser, show 3 signals ahead of three lines. Tapping fans 3 switches.
+  const SIGNAL_DEFS = [
+    { dep:"ops",   ahead:0.07, label:"J7" },
+    { dep:"tech",  ahead:0.08, label:"J5" },
+    { dep:"cs",    ahead:0.08, label:"J4" },
+  ];
+  const signals = [];
+  SIGNAL_DEFS.forEach(sd=>{
+    const dep = DEPTS.find(d=>d.id===sd.dep);
+    const p = pointAt(dep, Math.min(0.99, dep.progress + sd.ahead));
+    const g = document.createElementNS(SVGNS,"g");
+    g.setAttribute("transform", `translate(${p.x},${p.y})`);
+    g.style.cursor = "pointer";
+
+    // floating signal lamp (amber when active)
+    const halo = document.createElementNS(SVGNS,"circle");
+    halo.setAttribute("r","11"); halo.setAttribute("fill","rgba(244,167,66,.14)");
+    const lamp = document.createElementNS(SVGNS,"circle");
+    lamp.setAttribute("r","5"); lamp.setAttribute("fill","#F4A742");
+    lamp.setAttribute("stroke","#1a130a"); lamp.setAttribute("stroke-width","1.5");
+    g.appendChild(halo); g.appendChild(lamp);
+
+    // three illuminated track-switches that fan out on tap (H / D / A)
+    const fan = document.createElementNS(SVGNS,"g");
+    fan.setAttribute("opacity","0");
+    fan.style.transition = reduced ? "none" : "opacity .25s ease";
+    const offs = [[-26,-14,"H"],[0,-26,"X"],[26,-14,"A"]];
+    offs.forEach(([dx,dy,t])=>{
+      const sw = document.createElementNS(SVGNS,"g");
+      sw.setAttribute("transform",`translate(${dx},${dy})`);
+      const seg = document.createElementNS(SVGNS,"path");
+      seg.setAttribute("d",`M0 0 L${-dx*0.5} ${-dy*0.5}`);
+      seg.setAttribute("stroke","#F4A742"); seg.setAttribute("stroke-width","2");
+      seg.setAttribute("opacity",".5"); seg.setAttribute("stroke-linecap","round");
+      const dot = document.createElementNS(SVGNS,"circle");
+      dot.setAttribute("r","8"); dot.setAttribute("fill","rgba(20,16,10,.9)");
+      dot.setAttribute("stroke","#F4A742"); dot.setAttribute("stroke-width","1.5");
+      const tx = document.createElementNS(SVGNS,"text");
+      tx.setAttribute("text-anchor","middle"); tx.setAttribute("dy","3.5");
+      tx.setAttribute("font-size","9"); tx.setAttribute("font-weight","700");
+      tx.setAttribute("fill","#ffce8a"); tx.setAttribute("font-family","inherit");
+      tx.textContent = t;
+      sw.appendChild(seg); sw.appendChild(dot); sw.appendChild(tx);
+      fan.appendChild(sw);
+    });
+    g.appendChild(fan);
+
+    let open=false;
+    g.addEventListener("click", ()=>{
+      open=!open;
+      fan.setAttribute("opacity", open?"1":"0");
+      // mechanical clack pop on the lamp
+      lamp.style.transformBox="fill-box"; lamp.style.transformOrigin="center";
+      lamp.style.animation="none"; void lamp.getBBox();
+      if(!reduced) lamp.style.animation="clackpop .26s var(--ease-mech)";
+    });
+    signalsG.appendChild(g);
+    signals.push({g,lamp,halo,dep});
+  });
+
+  // gentle pulse on every signal lamp (CSS keyframe via inline animation)
+  if(!reduced){
+    signals.forEach((s,i)=>{
+      s.halo.style.transformBox="fill-box"; s.halo.style.transformOrigin="center";
+      s.halo.animate(
+        [{transform:"scale(1)",opacity:.5},{transform:"scale(1.8)",opacity:0}],
+        {duration:2200, delay:i*400, iterations:Infinity, easing:"ease-out"}
+      );
+    });
+  }
+
+  // ---- footer pick buttons arm a switch (micro-interaction, sound-free) ----
+  const picks = document.querySelectorAll(".pick");
+  picks.forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      picks.forEach(b=>b.classList.remove("armed"));
+      btn.classList.add("armed");
+      // throw the OPS junction signal lamp as feedback (mechanical clack feel)
+      const opsSig = signals.find(s=>s.dep.id==="ops");
+      if(opsSig && !reduced){
+        opsSig.lamp.style.transformBox="fill-box"; opsSig.lamp.style.transformOrigin="center";
+        opsSig.lamp.style.animation="none"; void opsSig.lamp.getBBox();
+        opsSig.lamp.style.animation="clackpop .26s var(--ease-mech)";
+      }
+    });
+  });
+
+  // ================= HERO MOMENT: the overtake =================
+  // Ops (you) currently 0.62; Sales currently 0.66 (just ahead).
+  // We drill Ops past Sales at a shared junction. The view tilts, Ops dives UNDER
+  // Sales (z-swap + depth blur on Sales), a sodium sweep runs the freshly-laid track
+  // segment by segment, and Ops surfaces ahead with an overshoot + station pop.
+  const tilt = document.getElementById("tiltGroup");
+  const fDive = document.querySelector("#fDive feGaussianBlur");
+  const net = document.getElementById("net");
+
+  const ops   = DEPTS.find(d=>d.id==="ops");
+  const sales = DEPTS.find(d=>d.id==="sales");
+
+  function setToast(text, show){
+    if(text!=null) toast.textContent = text;
+    toast.classList.toggle("show", !!show);
+  }
+
+  // sodium sweep: a short bright dash that travels the newly-laid segment.
+  function sodiumSweep(dep, fromT, toT){
+    return new Promise(res=>{
+      if(reduced){ res(); return; }
+      const sweep = document.createElementNS(SVGNS,"path");
+      sweep.setAttribute("d", dep.d);
+      sweep.setAttribute("stroke","#ffce8a");
+      sweep.setAttribute("stroke-width","7");
+      sweep.setAttribute("fill","none");
+      sweep.setAttribute("stroke-linecap","round");
+      sweep.setAttribute("filter","url(#fGlow)");
+      const L = dep._len;
+      const segLen = L*0.06;            // bright lit segment length
+      sweep.style.strokeDasharray = `${segLen} ${L}`;
+      // start the lit segment at fromT, travel to toT
+      const startOff = L*(1-fromT) - segLen;
+      const endOff   = L*(1-toT) - segLen;
+      sweep.style.strokeDashoffset = startOff;
+      linesG.appendChild(sweep);
+      // animate dashoffset (transform-free, dashoffset only)
+      const anim = sweep.animate(
+        [{strokeDashoffset:startOff, opacity:1},
+         {strokeDashoffset:endOff,   opacity:1, offset:.82},
+         {strokeDashoffset:endOff,   opacity:0}],
+        {duration:760, easing:"cubic-bezier(.16,1,.3,1)"}
+      );
+      anim.onfinish = ()=>{ sweep.remove(); res(); };
+    });
+  }
+
+  let running=false;
+  async function playOvertake(){
+    if(running) return; running=true;
+
+    // reset to pre-overtake state: Sales ahead of Ops
+    setProgress(sales, 0.66, false);
+    setProgress(ops,   0.62, false);
+    renderLegend(); placeYouHere();
+    setToast("Junction 7 — Ops closing on Sales", true);
+
+    // ensure Sales paints normally first
+    fDive.setAttribute("stdDeviation","0");
+
+    await wait(reduced?0:700);
+
+    if(reduced){
+      // calm fallback: just settle Ops slightly ahead, single gentle head pulse
+      setProgress(ops, 0.69, false);
+      renderLegend(); placeYouHere();
+      ops._ring.animate?.([{r:8.5},{r:11},{r:8.5}],{duration:1400,iterations:3,easing:"ease-in-out"});
+      setToast("Ops leads at Junction 7", true);
+      running=false; return;
+    }
+
+    // 1) isometric tilt — the whole network rocks (~8deg)
+    tilt.style.transform = "perspective(1400px) rotateX(8deg) scale(1.015)";
+
+    // 2) z-order swap: move Ops' live+head to the TOP so it renders over Sales,
+    //    and apply depth blur to Sales (the dived-under tunnel).
+    //    (raise Ops elements to end of group)
+    linesG.appendChild(ops._live);
+    linesG.appendChild(ops._head);
+    sales._live.setAttribute("filter","url(#fDive)");
+    fDive.animate(
+      [{stdDeviation:0},{stdDeviation:2.6,offset:.5},{stdDeviation:0}],
+      {duration:900, easing:"ease-in-out"}
+    ).onfinish = ()=> sales._live.removeAttribute("filter");
+    // slight dip on Sales head to read 'over the top'
+    sales._head.animate(
+      [{transform:"translateY(0)"},{transform:"translateY(-4px)",offset:.5},{transform:"translateY(0)"}],
+      {duration:900, easing:"ease-in-out"}
+    );
+
+    // 3) drill Ops forward (laid rail draws on) while the sodium sweep runs the new segment
+    const fromT = ops.progress, toT = 0.72;
+    setProgress(ops, toT, true);                 // dashoffset draw-on of laid rail
+    setToast("OPS dives under SALES — overtake at Junction 7", true);
+    await sodiumSweep(ops, fromT, toT);          // sequential sodium light down the new track
+
+    // settle the tilt with a small overshoot
+    tilt.style.transform = "perspective(1400px) rotateX(2deg) scale(1.004)";
+    await wait(160);
+    tilt.style.transform = "perspective(1400px) rotateX(0deg) scale(1)";
+
+    // 4) pneumatic surface: a single station-light pop where Ops surfaces ahead
+    popHead(ops);
+
+    // update standings: Ops now leads Sales
+    renderLegend(); placeYouHere();
+
+    // narrate
+    setTimeout(()=> setToast("Ops now leads — +12 m on Sales", true), 250);
+    setTimeout(()=> setToast(null, false), 3200);
+
+    running=false;
+  }
+
+  function pt(dep){ return pointAt(dep, dep.progress); }
+  function popHead(dep){
+    if(reduced) return;
+    // place a transient station light at the head and pop it (haptic-style scale)
+    const p = pt(dep);
+    const pop = document.createElementNS(SVGNS,"circle");
+    pop.setAttribute("cx",p.x); pop.setAttribute("cy",p.y);
+    pop.setAttribute("r","6"); pop.setAttribute("fill","#ffce8a");
+    pop.setAttribute("filter","url(#fGlow)");
+    linesG.appendChild(pop);
+    pop.animate(
+      [{transform:"scale(.4)",opacity:1},
+       {transform:"scale(1.6)",opacity:1,offset:.4},
+       {transform:"scale(1)",opacity:1}],
+      {duration:520, easing:"cubic-bezier(.2,.9,.25,1)"}
+    );
+    // need transform-origin at the point
+    pop.style.transformBox="fill-box"; pop.style.transformOrigin="center";
+    // leave a small permanent station tick
+    setTimeout(()=>{
+      pop.setAttribute("r","3.2"); pop.setAttribute("fill","#fff"); pop.removeAttribute("filter");
+    }, 520);
+  }
+
+  function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+  // ---- autoplay on load (after first paint), replay button, and replay on scroll-in ----
+  document.getElementById("replay").addEventListener("click", playOvertake);
+
+  // kick the hero shortly after load so the map reads first, then moves
+  if(reduced){
+    // calm fallback immediately
+    playOvertake();
+  } else {
+    setTimeout(playOvertake, 1100);
+  }
+
+  // re-trigger if the page is scrolled back into view (single-screen, but supports embed)
+  if("IntersectionObserver" in window && !reduced){
+    let fired=true;
+    const io = new IntersectionObserver((ents)=>{
+      ents.forEach(e=>{
+        if(e.isIntersecting && !fired){ fired=true; playOvertake(); }
+        if(!e.isIntersecting) fired=false;
+      });
+    }, {threshold:.35});
+    io.observe(document.getElementById("mapWrap"));
+  }
+
+  // keep "you are here" + heads positioned on resize
+  window.addEventListener("resize", ()=>{
+    DEPTS.forEach(d=>{ d._len = d._live.getTotalLength(); setProgress(d, d.progress, false); });
+    placeYouHere();
+  });
+})();
+</script>
+</body>
+</html>

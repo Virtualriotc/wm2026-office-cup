@@ -1,0 +1,54 @@
+{
+  "leagues": [
+    {
+      "slug": "fifa.world",
+      "name": "FIFA World Cup"
+    }
+  ],
+  "events": [
+    {
+      "id": "633850",
+      "date": "2022-12-18T15:00Z",
+      "name": "France at Argentina",
+      "shortName": "FRA @ ARG",
+      "season": {
+        "year": 2022,
+        "slug": "final"
+      },
+      "competitions": [
+        {
+          "status": {
+            "type": {
+              "state": "post",
+              "completed": true,
+              "detail": "FT-Pens",
+              "shortDetail": "FT-Pens"
+            }
+          },
+          "competitors": [
+            {
+              "homeAway": "home",
+              "winner": true,
+              "score": "3",
+              "team": {
+                "displayName": "Argentina",
+                "abbreviation": "ARG",
+                "shortDisplayName": "Argentina"
+              }
+            },
+            {
+              "homeAway": "away",
+              "winner": false,
+              "score": "3",
+              "team": {
+                "displayName": "France",
+                "abbreviation": "FRA",
+                "shortDisplayName": "France"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

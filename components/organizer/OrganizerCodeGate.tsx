@@ -39,7 +39,7 @@ export function OrganizerCodeGate() {
     <Card popIn className="mx-auto w-full max-w-[28rem] p-6">
       <h1 className="display text-[1.75rem]">{COPY.organizer.title}</h1>
       <p className="mt-2 text-[0.95rem]" style={{ color: "var(--color-muted)" }}>
-        {COPY.organizer.subhead}
+        {COPY.organizer.gateSubhead}
       </p>
       <form onSubmit={handleSubmit} className="mt-5 flex flex-col gap-3">
         <Field

@@ -192,7 +192,11 @@ export interface CopyShape {
   /** Organizer surface (auto results + manual overrides). */
   organizer: {
     title: string;
+    /** Shown to the UNLOCKED organizer — the real "how this works" line. */
     subhead: string;
+    /** Shown on the locked GATE — a playful "nothing here for you" for the
+     *  curious colleague who wanders in. NOT the admin instruction. */
+    gateSubhead: string;
     codeGateLabel: string;
     codeGatePlaceholder: string;
     codeGateCta: string;
@@ -406,6 +410,8 @@ const en: CopyShape = {
     title: "Results & overrides",
     subhead:
       "Results land automatically from the feed. You only step in to fix one the feed got wrong or hasn't called.",
+    gateSubhead:
+      "Nothing to see here, honestly — look away. This is the boring back room where whoever runs the cup nudges a stray result. Not you? Shoo. Your picks miss you out front.",
     codeGateLabel: "Organizer code",
     codeGatePlaceholder: "MP-XXXX-XXXX-XXXX",
     codeGateCta: "Unlock",

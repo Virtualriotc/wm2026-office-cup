@@ -111,6 +111,17 @@ export function Hero({
         {copy.hero.subhead}
       </motion.p>
 
+      {/* One-line "what is this" — the why-to-join, just above the CTA. */}
+      <motion.p
+        className="max-w-[32rem] text-[0.92rem]"
+        style={{ color: "var(--color-muted)" }}
+        initial={reduce ? false : { opacity: 0, y: 10 }}
+        animate={reduce ? undefined : { opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.4 }}
+      >
+        {copy.hero.about}
+      </motion.p>
+
       <Tag>{copy.app.unofficialTag}</Tag>
     </section>
   );

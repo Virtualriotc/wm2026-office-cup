@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Baloo_2, Hanken_Grotesk } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { COPY } from "@/lib/copy";
 import { TopNav } from "@/components/TopNav";
@@ -53,6 +54,10 @@ export default function RootLayout({
             {children}
           </main>
         </div>
+        {/* Vercel Web Analytics — cookieless, anonymous page views. Its beacon
+            posts to same-origin /_vercel/insights/*, so the strict CSP
+            (connect-src 'self', script via strict-dynamic) already covers it. */}
+        <Analytics />
       </body>
     </html>
   );

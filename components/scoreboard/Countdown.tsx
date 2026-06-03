@@ -79,6 +79,11 @@ export function Countdown({ target }: CountdownProps) {
       role="timer"
       aria-live="off"
       aria-label={spoken}
+      // The digits + spoken label are derived from the wall clock, so the
+      // request-time SSR value and the hydration-time client value can differ by
+      // a second (React #418). That's expected for a live timer: suppress the
+      // mismatch warning here and on each digit; the effect re-syncs on mount.
+      suppressHydrationWarning
     >
       {UNITS.map((u, i) => (
         <div key={u.key} className="flex items-stretch gap-2 sm:gap-3">
@@ -93,6 +98,7 @@ export function Countdown({ target }: CountdownProps) {
             <span
               className="display tnum text-[clamp(1.9rem,8vw,3.25rem)] leading-none"
               style={{ color: "var(--color-royal)" }}
+              suppressHydrationWarning
             >
               {pad(r[u.key])}
             </span>

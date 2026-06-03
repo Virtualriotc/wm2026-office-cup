@@ -69,10 +69,10 @@ describe("continueWithCode", () => {
   });
 
   it("throttles after the login budget is spent (same IP, one window)", async () => {
-    // LOGIN_LIMIT is 30/min in the action; a burst beyond it must throttle.
+    // LOGIN_LIMIT is 120/min in the action; a burst beyond it must throttle.
     let throttled = false;
     let firstThrottleAt = -1;
-    for (let i = 0; i < 40; i++) {
+    for (let i = 0; i < 130; i++) {
       const r = await continueWithCode("MP-AAAA-BBBB-CCCC");
       if (!r.ok && r.error === COPY.errors.tooManyAttempts) {
         throttled = true;
@@ -81,8 +81,8 @@ describe("continueWithCode", () => {
       }
     }
     expect(throttled).toBe(true);
-    // The first 30 must NOT be throttled (legitimate burst headroom).
-    expect(firstThrottleAt).toBeGreaterThanOrEqual(30);
+    // The first 120 must NOT be throttled (office-on-one-NAT burst headroom).
+    expect(firstThrottleAt).toBe(120);
   });
 });
 
@@ -101,14 +101,14 @@ describe("createAccount", () => {
   });
 
   it("throttles a fast create-account burst at the per-minute cap", async () => {
-    // createAccount is gated by 30/min/IP plus a high office-safe 300/day backstop.
-    // In a fast same-minute burst the PER-MINUTE cap (30) binds first: the first 30
-    // succeed, the 31st is throttled. (The 300/day cap is deliberately well above a
-    // single office's headcount so a whole office behind one NAT IP is never blocked.)
+    // createAccount is gated by 120/min/IP plus a high office-safe 1000/day backstop.
+    // In a fast same-minute burst the PER-MINUTE cap (120) binds first: the first 120
+    // succeed, the 121st is throttled. (Both caps are deliberately well above a single
+    // office's headcount so a whole office behind one NAT IP is never blocked at launch.)
     let throttled = false;
     let firstThrottleAt = -1;
     let succeeded = 0;
-    for (let i = 0; i < 40; i++) {
+    for (let i = 0; i < 130; i++) {
       const r = await createAccount(`Burst ${i}`, "Energy Ops", true);
       if (r.ok) {
         succeeded += 1;
@@ -119,9 +119,9 @@ describe("createAccount", () => {
       }
     }
     expect(throttled).toBe(true);
-    // Per-minute cap is 30: the first 30 land, the 31st (index 30) is throttled.
-    expect(succeeded).toBe(30);
-    expect(firstThrottleAt).toBe(30);
+    // Per-minute cap is 120: the first 120 land, the 121st (index 120) is throttled.
+    expect(succeeded).toBe(120);
+    expect(firstThrottleAt).toBe(120);
   });
 });
 

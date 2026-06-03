@@ -32,23 +32,24 @@ import { COPY } from "@/lib/copy";
 // Per-IP fixed-window budgets for the two PUBLIC, unauthenticated actions.
 // Independent buckets so a burst of bad logins can't starve genuine sign-ups.
 //
-// SIZING: these blunt a SCRIPTED flood (which does hundreds–thousands of calls
-// per second) while never tripping a legitimate burst. The real worst case is a
-// whole department behind ONE office NAT IP joining at kickoff — tens of calls
-// over a few minutes. 30/min/IP clears that comfortably yet still caps an abuser
-// to ~0.5 req/s, far below what a DoS needs. Per-process (see lib/rateLimit.ts),
-// so the effective ceiling across N Vercel instances is N×30 — still tiny vs a
-// flood, and the high-entropy code keeps brute force infeasible regardless.
+// SIZING: these blunt a SCRIPTED flood (hundreds–thousands of calls/sec) while
+// never tripping a legitimate burst. The real worst case is the WHOLE office
+// behind ONE NAT IP hitting "join" within the same minute the launch email
+// lands — up to ~100+ calls in 60s. 120/min/IP clears a big office in one
+// instance, yet still caps an abuser to ~2 req/s (far below a DoS) and the
+// high-entropy code makes account spam pointless (organizer can delete fakes).
+// Per-process (see lib/rateLimit.ts): the effective ceiling across N Vercel
+// instances is N×120 — generous for a launch, still a brake against a script.
 const RATE_WINDOW_MS = 60_000; // one minute
-const LOGIN_LIMIT = 30; // continueWithCode: 30 paste-attempts/min/IP
-const CREATE_LIMIT = 30; // createAccount: 30 new rows/min/IP
+const LOGIN_LIMIT = 120; // continueWithCode: 120 paste-attempts/min/IP (office on one NAT returning at once)
+const CREATE_LIMIT = 120; // createAccount: 120 new rows/min/IP (whole office joining at launch)
 
 // SYBIL BRAKE (soft): on top of the per-minute burst budget, a DAILY ceiling on
 // new accounts per IP. Real Sybil resistance is impossible without real auth —
 // this only brakes a mass-signup script behind one IP (an office NAT still clears
 // it: a whole department joining is tens, not hundreds). Fakes that slip through
 // can be erased by the organizer via deleteUser.
-const CREATE_DAILY_LIMIT = 300; // createAccount: 300/day/IP — office-safe (a whole office often shares ONE NAT IP); a high backstop against a runaway script, not a real Sybil defense (the organizer can delete fakes via removeMe/deleteUser)
+const CREATE_DAILY_LIMIT = 1000; // createAccount: 1000/day/IP — office-safe (a whole 200+ person office on ONE NAT IP, plus retries, over a day); a high backstop against a runaway script, not a real Sybil defense (the organizer can delete fakes via removeMe/deleteUser)
 const CREATE_DAILY_WINDOW_MS = 24 * 60 * 60 * 1000; // one day
 
 /** Best-effort client IP for this request, from the proxy headers. */

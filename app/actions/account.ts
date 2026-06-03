@@ -20,9 +20,11 @@ import { z } from "zod";
 import { getStore, DEPARTMENTS } from "@/lib/data";
 import {
   createSession,
+  clearSession,
   hashToken,
   isValidCodeFormat,
   normalizeCode,
+  requireUser,
 } from "@/lib/auth";
 import { rateLimit, clientIpFrom } from "@/lib/rateLimit";
 import { COPY } from "@/lib/copy";
@@ -40,6 +42,14 @@ import { COPY } from "@/lib/copy";
 const RATE_WINDOW_MS = 60_000; // one minute
 const LOGIN_LIMIT = 30; // continueWithCode: 30 paste-attempts/min/IP
 const CREATE_LIMIT = 30; // createAccount: 30 new rows/min/IP
+
+// SYBIL BRAKE (soft): on top of the per-minute burst budget, a DAILY ceiling on
+// new accounts per IP. Real Sybil resistance is impossible without real auth —
+// this only brakes a mass-signup script behind one IP (an office NAT still clears
+// it: a whole department joining is tens, not hundreds). Fakes that slip through
+// can be erased by the organizer via deleteUser.
+const CREATE_DAILY_LIMIT = 300; // createAccount: 300/day/IP — office-safe (a whole office often shares ONE NAT IP); a high backstop against a runaway script, not a real Sybil defense (the organizer can delete fakes via removeMe/deleteUser)
+const CREATE_DAILY_WINDOW_MS = 24 * 60 * 60 * 1000; // one day
 
 /** Best-effort client IP for this request, from the proxy headers. */
 async function callerIp(): Promise<string> {
@@ -93,13 +103,24 @@ export async function createAccount(
 ): Promise<CreateAccountResult> {
   try {
     // Throttle BEFORE any write so a flood can't spam user/department rows.
+    const ip = await callerIp();
     const limited = rateLimit(
       "create-account",
-      await callerIp(),
+      ip,
       CREATE_LIMIT,
       RATE_WINDOW_MS,
     );
     if (!limited.ok) {
+      return { ok: false, error: COPY.errors.tooManyAttempts };
+    }
+    // Sybil brake: a stricter DAILY ceiling per IP on top of the per-minute one.
+    const dailyLimited = rateLimit(
+      "create-account-daily",
+      ip,
+      CREATE_DAILY_LIMIT,
+      CREATE_DAILY_WINDOW_MS,
+    );
+    if (!dailyLimited.ok) {
       return { ok: false, error: COPY.errors.tooManyAttempts };
     }
 
@@ -182,4 +203,35 @@ export async function continueWithCode(
   } catch {
     return { ok: false, error: COPY.errors.generic };
   }
+}
+
+/** Result of a self-service data-removal request. */
+export type RemoveMeResult = { ok: boolean };
+
+/**
+ * GDPR right-to-erasure, self-service. Hard-deletes the signed-in user and
+ * everything tied to them (predictions, leaderboard row) via the store, then
+ * clears the session so the browser is signed out. The leaderboards + consensus
+ * recompute from raw rows on the next read, so the player fully disappears.
+ *
+ * Returns { ok: true } even if the session was already gone (idempotent — the
+ * user wanted to be removed either way; there's nothing to leak).
+ */
+export async function removeMe(): Promise<RemoveMeResult> {
+  try {
+    const user = await requireUser();
+    await getStore().deleteUser(user.id);
+    await clearSession();
+    return { ok: true };
+  } catch {
+    // No session / already removed: clear the cookie defensively and report ok.
+    await clearSession();
+    return { ok: true };
+  }
+}
+
+/** Sign out: clear the session cookie. The account/picks data is untouched. */
+export async function signOut(): Promise<{ ok: boolean }> {
+  await clearSession();
+  return { ok: true };
 }

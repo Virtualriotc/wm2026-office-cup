@@ -32,6 +32,12 @@ export interface ContractStore {
   openMatchId: string;
   /** A second open match, used for the consensus + lock-batch checks. */
   secondOpenMatchId: string;
+  /**
+   * A FUTURE knockout match whose teams stay bracket PLACEHOLDERS (never
+   * resolved in this suite). Used to prove the savePredictions semantic gate
+   * rejects picks on unpredictable (unresolved) matches.
+   */
+  unresolvedKoMatchId: string;
 }
 
 export type MakeContractStore = () => Promise<ContractStore>;
@@ -51,10 +57,12 @@ export function runStoreContract(label: string, make: MakeContractStore): void {
       store = ctx.store;
     });
 
-    it("seeds the five departments and the full fixture list", async () => {
+    it("seeds the seed departments and the full fixture list", async () => {
       const depts = await store.getDepartments();
-      expect(depts.length).toBe(5);
+      // Five Energy lanes + the privacy "Other / prefer not to say" lane.
+      expect(depts.length).toBe(6);
       expect(depts.map((d) => d.slug).sort()).toContain("energy-ops");
+      expect(depts.map((d) => d.slug)).toContain("other");
 
       const matches = await store.getMatches();
       // The full REAL openfootball 2026 schedule: 104 fixtures.
@@ -114,6 +122,13 @@ export function runStoreContract(label: string, make: MakeContractStore): void {
       // Now the resolved, still-future final IS predictable.
       const predictable = await store.getPredictableMatches();
       expect(predictable.some((m) => m.id === ctx.openMatchId)).toBe(true);
+
+      // Resolve the second open KO match too, so later prediction/consensus
+      // checks pick on a match with REAL teams (the savePredictions semantic
+      // gate rejects picks on unresolved placeholder matches by design).
+      await store.setMatchTeams(ctx.secondOpenMatchId, "Spain", "Portugal");
+      const predictable2 = await store.getPredictableMatches();
+      expect(predictable2.some((m) => m.id === ctx.secondOpenMatchId)).toBe(true);
 
       // Unknown match id throws (parity on the guard).
       await expect(
@@ -176,6 +191,67 @@ export function runStoreContract(label: string, make: MakeContractStore): void {
       expect(res.rejectedLocked).toContain("m-does-not-exist");
       const preds = await store.getPredictionsForUser(user.id);
       expect(preds.find((p) => p.matchId === ctx.openMatchId)?.pick).toBe("home");
+    });
+
+    it("REJECTS a 'draw' pick on a KNOCKOUT match (knockouts always resolve)", async () => {
+      // openMatchId is the FINAL (resolved to real teams above): a 'draw' there
+      // is semantically invalid and must be rejected, never saved.
+      const { user } = await store.createUser("Nadia", "Energy Tech");
+      const res = await store.savePredictions(user.id, [
+        { matchId: ctx.openMatchId, pick: "draw" },
+      ]);
+      expect(res.saved).toBe(0);
+      expect(res.rejectedLocked).toContain(ctx.openMatchId);
+      const preds = await store.getPredictionsForUser(user.id);
+      expect(preds.find((p) => p.matchId === ctx.openMatchId)).toBeUndefined();
+
+      // A home/away pick on the SAME knockout match is still accepted.
+      const ok = await store.savePredictions(user.id, [
+        { matchId: ctx.openMatchId, pick: "home" },
+      ]);
+      expect(ok.saved).toBe(1);
+    });
+
+    it("REJECTS any pick on an UNRESOLVED knockout match (placeholder teams)", async () => {
+      // unresolvedKoMatchId still holds bracket placeholders -> not predictable.
+      const { user } = await store.createUser("Omar", "Energy Tech");
+      const res = await store.savePredictions(user.id, [
+        { matchId: ctx.unresolvedKoMatchId, pick: "home" },
+      ]);
+      expect(res.saved).toBe(0);
+      expect(res.rejectedLocked).toContain(ctx.unresolvedKoMatchId);
+      const preds = await store.getPredictionsForUser(user.id);
+      expect(
+        preds.find((p) => p.matchId === ctx.unresolvedKoMatchId),
+      ).toBeUndefined();
+    });
+
+    it("deleteUser hard-removes the user + their picks; they vanish from the board", async () => {
+      // A fresh, scored user on a resolved match, then erased.
+      const { user } = await store.createUser("Petra", "Energy CS");
+      await store.savePredictions(user.id, [
+        { matchId: ctx.openMatchId, pick: "home" },
+      ]);
+      // They exist and have a pick + a leaderboard row.
+      expect((await store.getUser(user.id))?.id).toBe(user.id);
+      expect(
+        (await store.getPredictionsForUser(user.id)).length,
+      ).toBeGreaterThan(0);
+      const before = await store.getLeaderboard();
+      expect(before.some((r) => r.userId === user.id)).toBe(true);
+
+      // Erase.
+      await store.deleteUser(user.id);
+
+      // Gone from every surface.
+      expect(await store.getUser(user.id)).toBeNull();
+      expect(await store.getUserByToken(user.tokenHash)).toBeNull();
+      expect((await store.getPredictionsForUser(user.id)).length).toBe(0);
+      const after = await store.getLeaderboard();
+      expect(after.some((r) => r.userId === user.id)).toBe(false);
+
+      // Idempotent: deleting again is a harmless no-op.
+      await expect(store.deleteUser(user.id)).resolves.toBeUndefined();
     });
 
     it("UPSERTS on (userId, matchId): a second pick overwrites, never duplicates", async () => {

@@ -92,6 +92,23 @@ export interface CopyShape {
     privacyFooter: string;
   };
 
+  /** Signed-in account controls: sign out + self-service data removal. */
+  account: {
+    /** Heading for the signed-in management card. */
+    manageTitle: string;
+    signedInAs: string; // "Signed in as {name}"
+    signOutCta: string;
+    /** Data-removal (GDPR erasure) control + confirm flow. */
+    removeTitle: string;
+    removeBody: string;
+    removeCta: string;
+    removeConfirmPrompt: string;
+    removeConfirmCta: string;
+    removeCancelCta: string;
+    removeWorking: string;
+    removeDone: string;
+  };
+
   /** The code shown once after joining, and the paste-to-continue flow. */
   code: {
     eyebrow: string;
@@ -284,12 +301,27 @@ const en: CopyShape = {
     newDepartmentHelper: "Start a new lane. Your teammates can join it after you.",
     departmentBackToList: "Pick from the list instead",
     consentCheckbox:
-      "I'm in for the fun of it. I get that this is a private game, not run by or the responsibility of Enpal. I'm 18 or over, happy to show my name and department on the board, and I can leave anytime.",
+      "I'm in for the fun of it. I get that this is a private game, not run by or the responsibility of Enpal. I'm 18 or over, happy to show my name and department on the board, and I get that my data is hosted on Vercel & Neon (US). I can remove it myself anytime from Account, or ask the organiser.",
     prizeLine:
       "No entry fee, no stakes, just bragging rights. The sharpest tipsters get a small thank-you gift at the end.",
     primaryCta: "Pick my matches",
     privacyFooter:
-      "We keep your nickname, department, picks, and a private code. Nothing else: no email, no tracking. All deleted after the final.",
+      "We keep your nickname, department, picks, and a private code. Nothing else: no email, no tracking. Hosted on Vercel & Neon (US) under standard data-transfer safeguards. Remove your data yourself anytime from Account, or ask the organiser — and everything goes after the final.",
+  },
+
+  account: {
+    manageTitle: "Your account",
+    signedInAs: "Signed in as {name}",
+    signOutCta: "Sign out",
+    removeTitle: "Remove my data",
+    removeBody:
+      "Delete your account, picks, and code for good. You'll vanish from the board. This can't be undone.",
+    removeCta: "Delete my data",
+    removeConfirmPrompt: "Sure? This wipes everything and can't be undone.",
+    removeConfirmCta: "Yes, delete it all",
+    removeCancelCta: "Keep me in",
+    removeWorking: "Removing…",
+    removeDone: "All gone. Thanks for playing — you're welcome back anytime.",
   },
 
   code: {
@@ -403,13 +435,13 @@ const en: CopyShape = {
     banner:
       "A friendly World Cup prediction game by colleagues, for colleagues. A private, personal project, not organised or endorsed by Enpal. Just for fun, and joining is completely voluntary.",
     consent:
-      "I'm joining for fun and on my own. I get that this is a private project, not an Enpal thing, and that Enpal isn't involved or responsible. I'm 18 or older. I'm happy with my chosen name and department on the leaderboard, and I know I can ask to be removed any time.",
+      "I'm joining for fun and on my own. I get that this is a private project, not an Enpal thing, and that Enpal isn't involved or responsible. I'm 18 or older. I'm happy with my chosen name and department on the leaderboard. I understand my data is hosted on Vercel & Neon (US) under standard data-transfer safeguards, and I can remove it myself anytime from the Account screen or ask the organiser to remove it.",
     prize:
       "No entry fee, no stakes, pure football bragging rights. At the end, the organiser will arrange a small thank-you gift for the top predictors. A token of fun, nothing more.",
     privacyFooter:
-      "We store only the name and department you pick (a nickname is fine), your predictions, and a private code. No email, no password, no tracking. Everything is deleted shortly after the final.",
+      "We store only the name and department you pick (a nickname is fine), your predictions, and a private code. No email, no password, no tracking. Hosted on Vercel & Neon (US) under standard data-transfer safeguards. You can remove your data yourself anytime from the Account screen, or ask the organiser to remove it for you — and everything is deleted shortly after the final.",
     footer:
-      "WM 2026 Office Cup · a private, just-for-fun game · not affiliated with or endorsed by Enpal · no entry fee, no stakes.",
+      "WM 2026 Office Cup · a private, just-for-fun game · not affiliated with or endorsed by Enpal · no entry fee, no stakes · hosted on Vercel & Neon (US) · remove your data anytime from Account.",
   },
 
   errors: {

@@ -27,6 +27,9 @@ const FIXED_NOW = new Date("2026-07-01T00:00:00.000Z");
 const LOCKED_MATCH_ID = "of-matchday-1-mexico-south-africa"; // 2026-06-11 — past
 const OPEN_MATCH_ID = "of-final-w101-w102"; // 2026-07-19 — future (final, 6 pts)
 const SECOND_OPEN_MATCH_ID = "of-semi-final-w97-w98"; // 2026-07-14 — future
+// A future SF that stays a bracket PLACEHOLDER (never resolved in this suite),
+// so picks on it must be rejected by the semantic gate.
+const UNRESOLVED_KO_MATCH_ID = "of-semi-final-w99-w100"; // 2026-07-15 — future, placeholder
 
 // -- Fixed-clock subclasses (the only override needed for determinism) --------
 
@@ -54,6 +57,7 @@ async function makeMock(): Promise<ContractStore> {
     lockedMatchId: LOCKED_MATCH_ID,
     openMatchId: OPEN_MATCH_ID,
     secondOpenMatchId: SECOND_OPEN_MATCH_ID,
+    unresolvedKoMatchId: UNRESOLVED_KO_MATCH_ID,
   };
 }
 
@@ -66,6 +70,7 @@ async function makeDrizzle(): Promise<ContractStore> {
     lockedMatchId: LOCKED_MATCH_ID,
     openMatchId: OPEN_MATCH_ID,
     secondOpenMatchId: SECOND_OPEN_MATCH_ID,
+    unresolvedKoMatchId: UNRESOLVED_KO_MATCH_ID,
   };
 }
 

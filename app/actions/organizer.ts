@@ -18,9 +18,15 @@
 // ============================================================================
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import type { Outcome } from "@/lib/types";
 import { getStore } from "@/lib/data";
-import { requireOrganizer, unlockOrganizerWithCode } from "@/lib/auth";
+import {
+  requireOrganizer,
+  unlockOrganizerWithCode,
+  clearOrganizerSession,
+} from "@/lib/auth";
+import { rateLimit, clientIpFrom } from "@/lib/rateLimit";
 import { seedFixtures } from "@/lib/ingest/openfootball";
 import { runSync } from "@/lib/ingest/sync";
 
@@ -29,6 +35,22 @@ const VALID_OUTCOMES: ReadonlySet<string> = new Set<Outcome>([
   "draw",
   "away",
 ]);
+
+// Per-IP throttles for the organizer surface. unlock is the brute-force target
+// (an attacker guessing ORGANIZER_CODE) so it gets a tight budget; the
+// authenticated actions get a coarse cap purely to blunt a runaway client.
+const ORG_UNLOCK_LIMIT = 5; //   5 unlock attempts / minute / IP
+const ORG_ACTION_LIMIT = 30; //  30 organizer writes / minute / IP
+const ORG_WINDOW_MS = 60_000;
+
+/** Best-effort client IP for this request; "" (shared "unknown" bucket) on miss. */
+async function callerIp(): Promise<string> {
+  try {
+    return clientIpFrom(await headers());
+  } catch {
+    return "";
+  }
+}
 
 export interface ActionResult {
   ok: boolean;
@@ -43,11 +65,34 @@ export interface ActionResult {
  * the server and is not echoed back. On success the caller revalidates the page.
  */
 export async function unlockOrganizer(code: string): Promise<ActionResult> {
+  // Throttle BEFORE validating so a code-guessing flood can't spin unlimited
+  // attempts. A spent budget returns the same FORBIDDEN as a wrong code, so the
+  // throttle reveals nothing about the code itself.
+  const limited = rateLimit(
+    "org-unlock",
+    await callerIp(),
+    ORG_UNLOCK_LIMIT,
+    ORG_WINDOW_MS,
+  );
+  if (!limited.ok) {
+    return { ok: false, error: "FORBIDDEN" };
+  }
   if (typeof code !== "string" || code.trim().length === 0) {
     return { ok: false, error: "FORBIDDEN" };
   }
   const ok = await unlockOrganizerWithCode(code);
   if (!ok) return { ok: false, error: "FORBIDDEN" };
+  revalidatePath("/organizer");
+  return { ok: true };
+}
+
+/**
+ * Lock the organizer surface again: clear the organizer cookie. The next render
+ * falls back to the code gate. A signed-in user's isOrganizer flag (if any) is
+ * unaffected — this only drops the cookie-based unlock for this browser.
+ */
+export async function lockOrganizer(): Promise<ActionResult> {
+  await clearOrganizerSession();
   revalidatePath("/organizer");
   return { ok: true };
 }
@@ -66,6 +111,9 @@ export async function confirmResult(
   outcome: Outcome,
   organizerCode?: string,
 ): Promise<ActionResult> {
+  if (!rateLimit("org-action", await callerIp(), ORG_ACTION_LIMIT, ORG_WINDOW_MS).ok) {
+    return { ok: false, error: "FORBIDDEN" };
+  }
   try {
     await requireOrganizer(organizerCode);
   } catch {
@@ -107,6 +155,9 @@ export async function confirmResult(
 export async function seedFixturesAction(
   organizerCode?: string,
 ): Promise<ActionResult> {
+  if (!rateLimit("org-action", await callerIp(), ORG_ACTION_LIMIT, ORG_WINDOW_MS).ok) {
+    return { ok: false, error: "FORBIDDEN" };
+  }
   try {
     await requireOrganizer(organizerCode);
   } catch {
@@ -143,6 +194,9 @@ export async function seedFixturesAction(
 export async function syncNowAction(
   organizerCode?: string,
 ): Promise<ActionResult> {
+  if (!rateLimit("org-action", await callerIp(), ORG_ACTION_LIMIT, ORG_WINDOW_MS).ok) {
+    return { ok: false, error: "FORBIDDEN" };
+  }
   try {
     await requireOrganizer(organizerCode);
   } catch {

@@ -7,6 +7,7 @@ import { OrganizerCodeGate } from "@/components/organizer/OrganizerCodeGate";
 import { MatchConfirmRow } from "@/components/organizer/MatchConfirmRow";
 import { SyncHeartbeat } from "@/components/organizer/SyncHeartbeat";
 import { SeedButton } from "@/components/organizer/SeedButton";
+import { LockOrganizerButton } from "@/components/organizer/LockOrganizerButton";
 
 // The organizer surface is authoritative + reads request cookies, so it must be
 // dynamic (never statically cached).
@@ -59,11 +60,14 @@ export default async function OrganizerPage() {
 
   return (
     <div className="flex flex-col gap-6 py-6">
-      <header className="flex flex-col gap-1">
-        <h1 className="display text-[2rem]">{COPY.organizer.title}</h1>
-        <p className="text-[0.95rem]" style={{ color: "var(--color-muted)" }}>
-          {COPY.organizer.subhead}
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <h1 className="display text-[2rem]">{COPY.organizer.title}</h1>
+          <p className="text-[0.95rem]" style={{ color: "var(--color-muted)" }}>
+            {COPY.organizer.subhead}
+          </p>
+        </div>
+        <LockOrganizerButton />
       </header>
 
       {/* Controls: sync heartbeat + seed. */}

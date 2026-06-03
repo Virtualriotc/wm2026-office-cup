@@ -139,10 +139,12 @@ export async function requireUser() {
 }
 
 /** True if the supplied code matches the configured ORGANIZER_CODE. */
-function organizerCodeMatches(code: string): boolean {
+export function organizerCodeMatches(code: string): boolean {
   const expected = process.env.ORGANIZER_CODE;
   if (!expected) return false;
-  return normalizeCode(code) === normalizeCode(expected);
+  // constantTimeEqual returns false fast on a length mismatch (length is not
+  // secret) and otherwise compares without leaking WHERE the first byte differs.
+  return constantTimeEqual(normalizeCode(code), normalizeCode(expected));
 }
 
 /**

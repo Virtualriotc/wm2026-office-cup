@@ -38,6 +38,7 @@ import {
   ALL_DEPARTMENT_NAMES,
   DYNAMIC_DEPARTMENT_COLORS,
   SEED_MATCHES,
+  MAX_DEPARTMENT_NAME_LEN,
   slugify,
   hasKnownTeams,
 } from "./seed";
@@ -107,6 +108,14 @@ export interface DataStore {
    * on the fly (departments are dynamic — joiners can add their own lane).
    */
   createUser(displayName: string, department: string): Promise<CreateUserResult>;
+  /**
+   * GDPR right-to-erasure: HARD-DELETE a user and everything tied to them —
+   * their predictions and any persisted leaderboard row — so they fully
+   * disappear from the board and the consensus. Idempotent (an unknown id is a
+   * no-op). The leaderboards/consensus recompute from raw rows on the next read,
+   * so removing the predictions is enough for them to vanish.
+   */
+  deleteUser(userId: string): Promise<void>;
   /** Create a department from a free-form name (idempotent on slug). */
   createDepartment(name: string): Promise<Department>;
   /**
@@ -468,6 +477,11 @@ export class MockStore implements DataStore {
         d.name.toLowerCase() === trimmed.toLowerCase(),
     );
     if (found) return { ...found };
+    // A brand-new typed name: cap length and reject empty/slug-less input
+    // store-side (defense in depth — the action layer also validates).
+    if (trimmed.length === 0 || trimmed.length > MAX_DEPARTMENT_NAME_LEN || slug.length === 0) {
+      throw new Error("INVALID_DEPARTMENT");
+    }
     return this.createDepartment(trimmed);
   }
 
@@ -495,6 +509,15 @@ export class MockStore implements DataStore {
     return { user, code };
   }
 
+  async deleteUser(userId: string): Promise<void> {
+    // GDPR erasure: drop the user, their predictions, and their frozen rank
+    // snapshot. Leaderboards + consensus are derived from (users, predictions)
+    // on read, so once these rows are gone the user vanishes everywhere.
+    this.users = this.users.filter((u) => u.id !== userId);
+    this.predictions = this.predictions.filter((p) => p.userId !== userId);
+    delete this.previousUserRanks[userId];
+  }
+
   async savePredictions(
     userId: string,
     picks: SavePredictionInput[],
@@ -512,6 +535,18 @@ export class MockStore implements DataStore {
         continue;
       }
       if (this.isLocked(match)) {
+        rejectedLocked.push(pick.matchId);
+        continue;
+      }
+      // SEMANTIC GATE (server-side truth, does not trust the UI):
+      //   - a 'draw' is only valid in the GROUP stage; knockouts always resolve.
+      //   - a match with an unresolved/placeholder team is NOT predictable yet.
+      // Either makes the pick invalid -> rejected via the same channel, never saved.
+      if (pick.pick === "draw" && match.stage !== "group") {
+        rejectedLocked.push(pick.matchId);
+        continue;
+      }
+      if (!hasKnownTeams(match)) {
         rejectedLocked.push(pick.matchId);
         continue;
       }
@@ -738,6 +773,9 @@ class NeonStore implements DataStore {
     department: string,
   ): Promise<CreateUserResult> {
     return (await this.resolve()).createUser(displayName, department);
+  }
+  async deleteUser(userId: string): Promise<void> {
+    return (await this.resolve()).deleteUser(userId);
   }
   async createDepartment(name: string): Promise<Department> {
     return (await this.resolve()).createDepartment(name);

@@ -48,6 +48,7 @@ import {
   DEPARTMENTS,
   SEED_MATCHES,
   DYNAMIC_DEPARTMENT_COLORS,
+  MAX_DEPARTMENT_NAME_LEN,
   slugify,
   hasKnownTeams,
 } from "../lib/seed";
@@ -315,6 +316,11 @@ export class DrizzleStore implements DataStore {
         d.name.toLowerCase() === trimmed.toLowerCase(),
     );
     if (found) return toDepartment(found);
+    // A brand-new typed name: cap length and reject empty/slug-less input
+    // store-side (defense in depth — the action layer also validates).
+    if (trimmed.length === 0 || trimmed.length > MAX_DEPARTMENT_NAME_LEN || slug.length === 0) {
+      throw new Error("INVALID_DEPARTMENT");
+    }
     return this.createDepartment(trimmed);
   }
 
@@ -348,6 +354,21 @@ export class DrizzleStore implements DataStore {
     return { user, code };
   }
 
+  async deleteUser(userId: string): Promise<void> {
+    // GDPR erasure: hard-DELETE the user's predictions, their persisted
+    // leaderboard row, then the user. The FK cascades would handle the children,
+    // but we delete them explicitly so the contract holds on any driver and the
+    // intent is unambiguous. Leaderboards/consensus recompute from raw rows on
+    // the next read, so the user disappears from the board too.
+    await this.db
+      .delete(schema.predictions)
+      .where(eq(schema.predictions.userId, userId));
+    await this.db
+      .delete(schema.leaderboardUser)
+      .where(eq(schema.leaderboardUser.userId, userId));
+    await this.db.delete(schema.users).where(eq(schema.users.id, userId));
+  }
+
   // -- writes: predictions (server-side lock + UNIQUE upsert) ----------------
 
   async savePredictions(
@@ -363,19 +384,37 @@ export class DrizzleStore implements DataStore {
     // Load only the matches referenced by this batch.
     const ids = [...new Set(picks.map((p) => p.matchId))];
     const matchRows = await this.db
-      .select({ id: schema.matches.id, kickoff: schema.matches.kickoff })
+      .select({
+        id: schema.matches.id,
+        kickoff: schema.matches.kickoff,
+        stage: schema.matches.stage,
+        home: schema.matches.home,
+        away: schema.matches.away,
+      })
       .from(schema.matches)
       .where(inArray(schema.matches.id, ids));
-    const kickoffById = new Map(matchRows.map((m) => [m.id, m.kickoff]));
+    const matchById = new Map(matchRows.map((m) => [m.id, m]));
 
     for (const pick of picks) {
-      const kickoff = kickoffById.get(pick.matchId);
-      if (!kickoff) {
+      const match = matchById.get(pick.matchId);
+      if (!match) {
         rejectedLocked.push(pick.matchId); // unknown match: treat as rejected
         continue;
       }
-      if (this.isLocked(kickoff)) {
+      if (this.isLocked(match.kickoff)) {
         rejectedLocked.push(pick.matchId); // SERVER-SIDE LOCK
+        continue;
+      }
+      // SEMANTIC GATE (server-side truth, does not trust the UI):
+      //   - a 'draw' is only valid in the GROUP stage; knockouts always resolve.
+      //   - a match with an unresolved/placeholder team is NOT predictable yet.
+      // Either makes the pick invalid -> rejected via the same channel, never saved.
+      if (pick.pick === "draw" && (match.stage as Stage) !== "group") {
+        rejectedLocked.push(pick.matchId);
+        continue;
+      }
+      if (!hasKnownTeams({ home: match.home, away: match.away })) {
+        rejectedLocked.push(pick.matchId);
         continue;
       }
       // Upsert on UNIQUE(user_id, match_id): a second pick overwrites, never

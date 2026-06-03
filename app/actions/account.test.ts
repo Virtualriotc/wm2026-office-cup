@@ -32,7 +32,9 @@ vi.mock("next/headers", () => ({
   headers: async () => new Headers({ "x-forwarded-for": "203.0.113.99" }),
 }));
 
-import { continueWithCode, createAccount } from "./account";
+import { continueWithCode, createAccount, removeMe, signOut } from "./account";
+import { getStore } from "@/lib/data";
+import { hashToken } from "@/lib/auth";
 import { __resetRateLimitForTests } from "@/lib/rateLimit";
 import { COPY } from "@/lib/copy";
 
@@ -98,20 +100,75 @@ describe("createAccount", () => {
     expect(res.ok).toBe(false);
   });
 
-  it("throttles after the create-account budget is spent", async () => {
-    // CREATE_LIMIT is 30/min in the action; a burst past it throttles, but the
-    // first 30 (a legitimate department joining together) all succeed.
+  it("throttles a fast create-account burst at the per-minute cap", async () => {
+    // createAccount is gated by 30/min/IP plus a high office-safe 300/day backstop.
+    // In a fast same-minute burst the PER-MINUTE cap (30) binds first: the first 30
+    // succeed, the 31st is throttled. (The 300/day cap is deliberately well above a
+    // single office's headcount so a whole office behind one NAT IP is never blocked.)
     let throttled = false;
     let firstThrottleAt = -1;
+    let succeeded = 0;
     for (let i = 0; i < 40; i++) {
       const r = await createAccount(`Burst ${i}`, "Energy Ops", true);
-      if (!r.ok && r.error === COPY.errors.tooManyAttempts) {
+      if (r.ok) {
+        succeeded += 1;
+      } else if (r.error === COPY.errors.tooManyAttempts) {
         throttled = true;
         firstThrottleAt = i;
         break;
       }
     }
     expect(throttled).toBe(true);
-    expect(firstThrottleAt).toBeGreaterThanOrEqual(30);
+    // Per-minute cap is 30: the first 30 land, the 31st (index 30) is throttled.
+    expect(succeeded).toBe(30);
+    expect(firstThrottleAt).toBe(30);
+  });
+});
+
+describe("removeMe (GDPR self-service erasure)", () => {
+  it("deletes the signed-in user and clears the session", async () => {
+    const created = await createAccount("Erase Me", "Energy Ops", true);
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+
+    // The session cookie is set, so the user is resolvable by token.
+    const store = getStore();
+    const tokenHash = await hashToken(created.code);
+    const before = await store.getUserByToken(tokenHash);
+    expect(before).not.toBeNull();
+
+    const res = await removeMe();
+    expect(res.ok).toBe(true);
+
+    // User is gone from the store, and the session cookie was cleared.
+    expect(await store.getUserByToken(tokenHash)).toBeNull();
+    // A second removeMe (no session) is a harmless idempotent ok.
+    expect((await removeMe()).ok).toBe(true);
+  });
+
+  it("is a no-op ok when nobody is signed in", async () => {
+    const res = await removeMe();
+    expect(res.ok).toBe(true);
+  });
+});
+
+describe("signOut", () => {
+  it("clears the session but leaves the account intact", async () => {
+    const created = await createAccount("Sign Out", "Energy Ops", true);
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+
+    const store = getStore();
+    const tokenHash = await hashToken(created.code);
+    expect(await store.getUserByToken(tokenHash)).not.toBeNull();
+
+    const res = await signOut();
+    expect(res.ok).toBe(true);
+
+    // The account still exists (sign out is not deletion) — the code resumes it.
+    expect(await store.getUserByToken(tokenHash)).not.toBeNull();
+    __resetRateLimitForTests();
+    const resumed = await continueWithCode(created.code);
+    expect(resumed.ok).toBe(true);
   });
 });

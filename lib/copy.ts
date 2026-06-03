@@ -54,8 +54,7 @@ export interface CopyShape {
     eyebrow: string;
     titleLine1: string;
     titleLine2: string;
-    subhead: string;
-    /** One-line "what is this" shown above the CTA so visitors know why to join. */
+    /** The bold "what is this + how" line above the CTA. */
     about: string;
     primaryCta: string;
     ctaHelper: string;
@@ -276,10 +275,8 @@ const en: CopyShape = {
     eyebrow: "11 Jun – 19 Jul · 48 teams · 104 games",
     titleLine1: "WM 2026",
     titleLine2: "OFFICE CUP",
-    subhead:
-      "Call the winners. Carry your team up the table. Two minutes a round.",
     about:
-      "It's the 2026 Football World Cup (USA, Canada & Mexico). Tap who wins each match and bank points for every right call — which department has the best ball knowledge?",
+      "Pick a username and your department (add a new one if you like), save your login code, then predict who wins each match — and help answer the big question: which department has the best ball knowledge?",
     primaryCta: "Create your account",
     ctaHelper: "60 seconds. No password, no email.",
     haveCodeCta: "Got a code? Paste to continue",

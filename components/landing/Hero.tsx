@@ -16,7 +16,7 @@ function daysUntil(kickoff: string | null, nowMs: number): number | null {
 
 /**
  * Landing hero: eyebrow pill, the heavy royal-blue "Match Picks 2026" display
- * headline with its yellow offset shadow (from .display), the subhead, and the
+ * headline with its yellow offset shadow (from .display), the about line, and the
  * "UNOFFICIAL OFFICE GAME · NO BETTING" tag. A small bouncing ball adds energy
  * without stealing the budget; it stills under reduced motion.
  *
@@ -101,23 +101,13 @@ export function Hero({
         <Ball size={40} />
       </motion.div>
 
+      {/* The bold "what is this + how" line, just above the CTA. */}
       <motion.p
-        className="max-w-[30rem] text-[1.05rem] font-medium"
+        className="max-w-[34rem] text-[1.05rem] font-semibold"
         style={{ color: "var(--color-ink)" }}
         initial={reduce ? false : { opacity: 0, y: 10 }}
         animate={reduce ? undefined : { opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.34 }}
-      >
-        {copy.hero.subhead}
-      </motion.p>
-
-      {/* One-line "what is this" — the why-to-join, just above the CTA. */}
-      <motion.p
-        className="max-w-[32rem] text-[0.92rem]"
-        style={{ color: "var(--color-muted)" }}
-        initial={reduce ? false : { opacity: 0, y: 10 }}
-        animate={reduce ? undefined : { opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.4 }}
       >
         {copy.hero.about}
       </motion.p>

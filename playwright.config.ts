@@ -27,6 +27,12 @@ export const CRON_SECRET = "test-cron-secret-please-change";
 
 export default defineConfig({
   testDir: "./e2e",
+  // The LIVE specs (live.spec.ts, zzcheck.live.spec.ts) run ONLY against the
+  // deployed Neon-backed site via playwright.live.config.ts (which scopes itself
+  // with testMatch). They assert the real prod shape and would fail against this
+  // local SEED_DEMO mock-store server, so this default config must NOT pick them
+  // up. Exclude both the bare `live.spec.ts` and any `*.live.spec.ts`.
+  testIgnore: ["**/live.spec.ts", "**/*.live.spec.ts"],
   // The mock store is shared per server process; serialize to keep the seeded
   // snapshot and any created users predictable across specs.
   fullyParallel: false,

@@ -18,7 +18,7 @@ const BASE_URL = "https://wm2026-office-cup.vercel.app";
 
 export default defineConfig({
   testDir: "./e2e",
-  testMatch: /live\.spec\.ts$/,
+  testMatch: /(^|\/)live\.spec\.ts$/,
   fullyParallel: false,
   workers: 1,
   forbidOnly: !!process.env.CI,

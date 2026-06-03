@@ -128,6 +128,17 @@ export interface CopyShape {
     empty: string;
   };
 
+  /** Pre-tournament countdown hero (shown on the scoreboard before kickoff). */
+  countdown: {
+    eyebrow: string;
+    heading: string; // "The cup kicks off in"
+    firstFixtureLabel: string; // "First up"
+    firstFixtureLine: string; // "{home} vs {away} · {date}"
+    picksCta: string; // primary CTA -> /predict
+    picksOpenSubline: string; // "predictions are open" reassurance
+    lineupLabel: string; // "At the start line"
+  };
+
   /** The department race (home / hero of the scoreboard). */
   race: {
     header: string;
@@ -315,6 +326,16 @@ const en: CopyShape = {
     postLockNote: "Picks lock at kickoff and go public. No edits after that.",
     consensusLabel: "Office picked",
     empty: "All caught up. Your next picks open after tonight's games.",
+  },
+
+  countdown: {
+    eyebrow: "Kickoff is coming",
+    heading: "The cup kicks off in",
+    firstFixtureLabel: "First up",
+    firstFixtureLine: "{home} vs {away} · {date}",
+    picksCta: "Get your group-stage picks in",
+    picksOpenSubline: "Predictions are open now — lock in your group stage before the first whistle.",
+    lineupLabel: "At the start line",
   },
 
   race: {

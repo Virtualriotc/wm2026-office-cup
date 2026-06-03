@@ -1,12 +1,19 @@
+import Link from "next/link";
 import { getStore, isMockStore } from "@/lib/data";
 import { getCurrentUser } from "@/lib/auth";
 import { COPY, fill } from "@/lib/copy";
-import { Card, Tag } from "@/components/ui";
+import { Button, Card, Tag } from "@/components/ui";
 import { buildRelativeView } from "@/components/scoreboard/relative";
 import { buildRaceModel } from "@/components/scoreboard/raceModel";
 import { DepartmentRace } from "@/components/scoreboard/DepartmentRace";
 import { Leaderboard } from "@/components/scoreboard/Leaderboard";
-import type { Consensus, Match } from "@/lib/types";
+import { Countdown } from "@/components/scoreboard/Countdown";
+import {
+  computeFirstKickoff,
+  isPreTournament,
+  hasScoredResult,
+} from "@/components/scoreboard/scoreboardState";
+import type { Consensus, Department, Match } from "@/lib/types";
 
 // The scoreboard reads live from the data store on every request. The mock
 // store reflects the wall clock, so locked/upcoming matches are real relative
@@ -39,15 +46,30 @@ async function resolveViewer() {
 
 export default async function ScoreboardPage() {
   const store = getStore();
-  const [leaderboard, standings, matches, { user, isDemoViewer }] = await Promise.all([
-    store.getLeaderboard(),
-    store.getDepartmentStandings(),
-    store.getMatches(),
-    resolveViewer(),
-  ]);
+  const [leaderboard, standings, matches, results, departments, { user, isDemoViewer }] =
+    await Promise.all([
+      store.getLeaderboard(),
+      store.getDepartmentStandings(),
+      store.getMatches(),
+      store.getResults(),
+      store.getDepartments(),
+      resolveViewer(),
+    ]);
 
-  const view = buildRelativeView(leaderboard, await store.getDepartments(), user?.id ?? null);
+  // Time-based switch: before the EARLIEST kickoff we show a countdown hero;
+  // from kickoff on, the live race. Purely server-rendered per request (the
+  // page is force-dynamic), no manual flag.
+  const firstKickoff = computeFirstKickoff(matches);
+  if (isPreTournament(firstKickoff, new Date()) && firstKickoff) {
+    const firstMatch = matches.find((m) => m.kickoff === firstKickoff) ?? matches[0]!;
+    return <CountdownHero target={firstKickoff} firstMatch={firstMatch} departments={departments} />;
+  }
+
+  const view = buildRelativeView(leaderboard, departments, user?.id ?? null);
   const raceModel = buildRaceModel(standings, user?.departmentId ?? null);
+  // Gate the mover/streak badge on a real scored result: never on a pre-launch
+  // or all-zero board, even if the model synthesizes a demo overtake.
+  const showMover = hasScoredResult(results, standings);
 
   // Office consensus for the next open match — shown subtly, NOT as odds.
   const nextOpen: Match | undefined = matches.find((m) => m.status === "scheduled");
@@ -87,7 +109,7 @@ export default async function ScoreboardPage() {
           <p className="text-[0.92rem] font-bold" style={{ color: "var(--color-ink)" }}>
             Every correct pick pushes your department down the pitch. Knockouts count for more — so it&apos;s never over.
           </p>
-          {raceModel.mover ? (
+          {showMover && raceModel.mover ? (
             <span
               className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[0.75rem] font-extrabold"
               style={{ background: "var(--color-yellow)", border: "2px solid var(--color-ink)" }}
@@ -144,6 +166,102 @@ export default async function ScoreboardPage() {
         <p className="nb-pill self-center" style={{ fontSize: "0.68rem" }}>
           Demo view — showing the sample player &ldquo;{user?.displayName}&rdquo;. Join with a code to track your own.
         </p>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * Pre-tournament hero: a live countdown to the first kickoff, the opening
+ * fixture, the departments lined up at the start, and a primary CTA into the
+ * group-stage picks. This is the pre-launch surface colleagues land on before
+ * any ball is kicked — it replaces the empty 0-0 race entirely.
+ */
+function CountdownHero({
+  target,
+  firstMatch,
+  departments,
+}: {
+  target: string;
+  firstMatch: Match;
+  departments: Department[];
+}) {
+  const fixtureDate = new Date(target).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+  });
+  const fixtureLine = fill(COPY.countdown.firstFixtureLine, {
+    home: firstMatch.home,
+    away: firstMatch.away,
+    date: fixtureDate,
+  });
+
+  return (
+    <div className="flex flex-col gap-6 py-4">
+      <div>
+        <p
+          className="text-[0.72rem] font-extrabold uppercase tracking-[0.14em]"
+          style={{ color: "var(--color-muted)" }}
+        >
+          {COPY.race.sectionEyebrow}
+        </p>
+        <h1 className="display text-[clamp(2rem,7vw,3.25rem)]">{COPY.race.header}</h1>
+      </div>
+
+      <Card popIn className="flex flex-col items-center gap-5 p-6 text-center sm:p-8">
+        <span className="nb-pill" style={{ fontSize: "0.72rem" }}>
+          {COPY.countdown.eyebrow}
+        </span>
+
+        <h2 className="display text-[clamp(1.6rem,5.5vw,2.6rem)]">{COPY.countdown.heading}</h2>
+
+        <Countdown target={target} />
+
+        <div className="mt-1 flex flex-col items-center gap-1">
+          <span
+            className="text-[0.66rem] font-extrabold uppercase tracking-[0.12em]"
+            style={{ color: "var(--color-muted)" }}
+          >
+            {COPY.countdown.firstFixtureLabel}
+          </span>
+          <p className="text-[1.05rem] font-bold">{fixtureLine}</p>
+        </div>
+
+        <Link href="/predict" className="no-underline">
+          <Button>{COPY.countdown.picksCta}</Button>
+        </Link>
+
+        <p className="max-w-[26rem] text-[0.82rem]" style={{ color: "var(--color-muted)" }}>
+          {COPY.countdown.picksOpenSubline}
+        </p>
+      </Card>
+
+      {departments.length > 0 ? (
+        <Card delay={0.06} className="p-5 sm:p-6">
+          <p
+            className="mb-3 text-[0.66rem] font-extrabold uppercase tracking-[0.12em]"
+            style={{ color: "var(--color-muted)" }}
+          >
+            {COPY.countdown.lineupLabel}
+          </p>
+          <ul className="flex flex-wrap gap-2">
+            {departments.map((d) => (
+              <li key={d.id}>
+                <span
+                  className="nb-pill"
+                  style={{ fontSize: "0.78rem", fontWeight: 700 }}
+                >
+                  <span
+                    className="inline-block h-2.5 w-2.5 rounded-full"
+                    style={{ background: d.color, border: "1.5px solid var(--color-ink)" }}
+                    aria-hidden
+                  />
+                  {d.name}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </Card>
       ) : null}
     </div>
   );

@@ -13,10 +13,12 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1", "localhost"],
   // Drop the framework fingerprint header (x-powered-by: Next.js).
   poweredByHeader: false,
-  // Baseline security headers on EVERY route. Deliberately conservative: no
-  // restrictive script/style CSP that could break the app — only a
-  // frame-ancestors directive (clickjacking) alongside X-Frame-Options, plus
-  // MIME-sniffing, referrer, and permissions hardening.
+  // Baseline STATIC security headers on EVERY route (incl. /api + assets that
+  // middleware skips). The full Content-Security-Policy is NOT here — it needs a
+  // per-request nonce, so it lives in middleware.ts. X-Frame-Options keeps
+  // clickjacking covered everywhere (the CSP's frame-ancestors backs it up on
+  // page routes). Two CSP headers would be enforced as an intersection and only
+  // muddy things, so config owns the static headers and middleware owns the CSP.
   async headers() {
     return [
       {
@@ -29,7 +31,6 @@ const nextConfig: NextConfig = {
             key: "Permissions-Policy",
             value: "camera=(), microphone=(), geolocation=()",
           },
-          { key: "Content-Security-Policy", value: "frame-ancestors 'none'" },
         ],
       },
     ];

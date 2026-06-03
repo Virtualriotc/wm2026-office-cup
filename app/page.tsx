@@ -8,6 +8,13 @@ import { computeFirstKickoff } from "@/components/scoreboard/scoreboardState";
 // Landing + JOIN/CODE flow. A server component: it loads the department list
 // from the data store (mock by default), then hands it to the interactive
 // JoinCards (a client component) which drives createAccount / continueWithCode.
+//
+// Dynamic so the per-request CSP nonce (see middleware.ts) is stamped onto this
+// page's scripts. A statically-built landing page would carry no nonce and the
+// strict script-src would block its hydration — this is the one page that was
+// still static, so it must opt in explicitly.
+export const dynamic = "force-dynamic";
+
 export default async function HomePage() {
   const store = getStore();
   const [departments, matches] = await Promise.all([

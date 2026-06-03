@@ -212,7 +212,7 @@ test.describe("LIVE — functional + persistence (Neon)", () => {
   });
 
   // ---- 5. Predict shows multiple matchdays, nothing locked; scoreboard empty
-  test("5 · /predict shows multiple matchday sections nothing locked; /scoreboard is empty-state", async ({
+  test("5 · /predict many matchdays nothing locked; /scoreboard shows the pre-tournament countdown (or the race once live)", async ({
     browser,
   }) => {
     const ctx = await browser.newContext();
@@ -235,37 +235,31 @@ test.describe("LIVE — functional + persistence (Neon)", () => {
     await expect(page.getByRole("radiogroup").first()).toBeVisible();
     expect(await page.getByRole("radio").count()).toBeGreaterThan(0);
 
-    // Scoreboard pre-tournament empty-state. NOTE: the literal "No results in
-    // yet" placeholder only renders when ZERO departments are eligible (the
-    // 3-active-member guard). On the live DB, departments with >=3 members are
-    // eligible, so the race renders — but with NOTHING scored: every points
-    // value is 0.0 and there is no "mover of the week". That zero-everywhere
-    // board IS the pre-tournament empty state, and is what we assert.
+    // Scoreboard. The "The race" header renders in BOTH states. Before the first
+    // kickoff (pre-tournament) the page shows the COUNTDOWN hero; from kickoff on,
+    // the live race. Assert whichever state is correct for `now`, so this stays
+    // green across the 11 Jun boundary instead of assuming one shape.
     await page.goto("/scoreboard");
     await expect(page.getByRole("heading", { name: /^The race$/ })).toBeVisible();
 
+    const countdown = page.getByRole("timer"); // the live countdown clock
     const race = page.getByRole("list", { name: /Department race standings/i });
-    if (await race.count()) {
-      // Eligible departments exist -> the race shows, but every point total is 0.
-      // Both the rank chip AND the points value carry the `.tnum` class; only the
-      // points value is decimal-formatted (avgPoints.toFixed(1) -> "X.Y"), while
-      // the rank chip is a bare integer. Keep only the decimal cells = points.
-      const tnums = await race.locator(".tnum").allTextContents();
-      const pointTexts = tnums.map((t) => t.trim()).filter((t) => /\.\d/.test(t));
-      const nums = pointTexts
-        .map((t) => parseFloat(t))
-        .filter((n) => !Number.isNaN(n));
-      expect(nums.length, `expected decimal point cells, saw tnum: ${tnums}`).toBeGreaterThan(0);
-      expect(
-        nums.every((n) => n === 0),
-        `pre-tournament: every department points value must be 0, got ${pointTexts}`,
-      ).toBe(true);
+    if (await countdown.count()) {
+      // PRE-TOURNAMENT: a live countdown to the first kickoff (its accessible name
+      // reads "<d> days, <h> hours… until kickoff"), the opening fixture under a
+      // "First up" label, and a picks CTA. No race list, and nothing scored, so no
+      // "mover of the week" badge.
+      await expect(countdown.first()).toBeVisible();
+      await expect(countdown.first()).toHaveAccessibleName(/until kickoff/i);
+      await expect(page.getByText(/First up/i)).toBeVisible();
+      await expect(race).toHaveCount(0);
+      await expect(page.getByText(/mover of the week/i)).toHaveCount(0);
     } else {
-      // Truly empty DB (no eligible dept) -> the no-results placeholder shows.
-      await expect(page.getByText(/No results in yet/i)).toBeVisible();
+      // IN/POST-TOURNAMENT: the race list renders. We don't assert specific points
+      // here — a later matchday legitimately carries real scores — only that the
+      // live board is present and renders cleanly.
+      await expect(race).toBeVisible();
     }
-    // Either way: nothing has been scored, so no "mover of the week" badge.
-    await expect(page.getByText(/mover of the week/i)).toHaveCount(0);
 
     await ctx.close();
   });

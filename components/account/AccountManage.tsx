@@ -2,7 +2,6 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import type { CopyShape } from "@/lib/copy";
 import { fill } from "@/lib/copy";
 import { Card, Button } from "@/components/ui";
@@ -26,7 +25,7 @@ export function AccountManage({
 }) {
   const router = useRouter();
   const [confirming, setConfirming] = useState(false);
-  const [done, setDone] = useState(false);
+  const [leaving, setLeaving] = useState(false);
   const [pending, startTransition] = useTransition();
 
   function handleSignOut() {
@@ -37,30 +36,25 @@ export function AccountManage({
   }
 
   function handleRemove() {
+    // Show the "removing" card immediately so the form can't flash back, then
+    // delete + navigate to the dedicated confirmation page. We must NAVIGATE
+    // (not setState): a Server Action auto-revalidates the route it's called
+    // from, so after removeMe() the /account page re-renders into its signed-out
+    // join form — that's why a same-page success card silently disappeared.
+    // /account/deleted is a standalone signed-out page, so it survives.
+    setLeaving(true);
     startTransition(async () => {
       await removeMe();
-      // The server has deleted the user + cleared the session. We do NOT
-      // router.refresh() here: that re-renders the account page into its
-      // signed-out state and unmounts THIS component, so the confirmation below
-      // would never show — the old bug made a successful delete look like it
-      // silently bounced you to the join form. Instead we keep the success card;
-      // the session is already gone, so any navigation lands signed-out.
-      setDone(true);
+      router.replace("/account/deleted");
     });
   }
 
-  if (done) {
+  if (leaving) {
     return (
       <Card popIn className="mx-auto w-full max-w-[34rem] p-6 text-center">
-        <p className="display text-[1.3rem]">{copy.account.removeDoneTitle}</p>
-        <p className="mt-2 font-medium" role="status">
-          {copy.account.removeDone}
+        <p className="font-bold" role="status">
+          {copy.account.removeWorking}
         </p>
-        <div className="mt-5 flex justify-center">
-          <Link href="/" className="nb-btn nb-btn--primary no-underline">
-            {copy.account.removeDoneCta}
-          </Link>
-        </div>
       </Card>
     );
   }

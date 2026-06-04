@@ -154,9 +154,18 @@ export async function createAccount(
       department_ = parsedDept.data;
     }
 
-    // The store dedups a new name by normalized slug (getOrCreateDepartmentByName),
-    // so two players typing the same lane land in one department, not two.
-    const { user, code } = await store.createUser(name, department_);
+    // Resolve the department to a concrete lane (creating it if it's a typed-new
+    // one — the store dedups by normalized slug, so two players typing the same
+    // lane land in ONE department, not two).
+    const dept = await store.getOrCreateDepartmentByName(department_);
+    // Reject a duplicate NAME within that SAME department: login is by the secret
+    // code (never the name), so a dup name is not a security risk — but two
+    // identical entries on the board are confusing, so we ask the second person
+    // to vary it (add a surname/initial).
+    if (await store.nameTakenInDepartment(name, dept.id)) {
+      return { ok: false, error: COPY.errors.nameTaken };
+    }
+    const { user, code } = await store.createUser(name, dept.id);
     // Open the session immediately so "Got it — start picking" lands signed in.
     await createSession(user.tokenHash);
 

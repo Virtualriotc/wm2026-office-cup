@@ -108,6 +108,8 @@ export interface CopyShape {
     removeCancelCta: string;
     removeWorking: string;
     removeDone: string;
+    removeDoneTitle: string;
+    removeDoneCta: string;
   };
 
   /** The code shown once after joining, and the paste-to-continue flow. */
@@ -327,6 +329,8 @@ const en: CopyShape = {
     removeCancelCta: "Keep me in",
     removeWorking: "Removing…",
     removeDone: "All gone. Thanks for playing — you're welcome back anytime.",
+    removeDoneTitle: "You're deleted ✅",
+    removeDoneCta: "Back to the cup",
   },
 
   code: {
@@ -453,7 +457,8 @@ const en: CopyShape = {
 
   errors: {
     generic: "That didn't go through. Give it another tap in a moment.",
-    nameTaken: "That name's taken. Try another one?",
+    nameTaken:
+      "Someone with that name is already in this department. Add your surname or an initial to stand out.",
     departmentInvalid: "Give your department a short name (up to 40 characters).",
     invalidCode: "That code doesn't look right. Check it and try again.",
     pickAfterLock:

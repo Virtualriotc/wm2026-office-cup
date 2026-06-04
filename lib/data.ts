@@ -124,6 +124,15 @@ export interface DataStore {
    */
   getOrCreateDepartmentByName(idOrName: string): Promise<Department>;
   /**
+   * True if a user with this display name (case-insensitive, trimmed) already
+   * exists in the given department. Used to reject a duplicate name+department
+   * signup so the board never shows two identical entries.
+   */
+  nameTakenInDepartment(
+    displayName: string,
+    departmentId: string,
+  ): Promise<boolean>;
+  /**
    * Save a user's picks. MUST reject any pick whose match has reached kickoff
    * (server-side lock). Upserts on (userId, matchId).
    */
@@ -485,6 +494,18 @@ export class MockStore implements DataStore {
     return this.createDepartment(trimmed);
   }
 
+  async nameTakenInDepartment(
+    displayName: string,
+    departmentId: string,
+  ): Promise<boolean> {
+    const norm = displayName.trim().toLowerCase();
+    return this.users.some(
+      (u) =>
+        u.departmentId === departmentId &&
+        u.displayName.trim().toLowerCase() === norm,
+    );
+  }
+
   async createUser(
     displayName: string,
     department: string,
@@ -782,6 +803,15 @@ class NeonStore implements DataStore {
   }
   async getOrCreateDepartmentByName(idOrName: string): Promise<Department> {
     return (await this.resolve()).getOrCreateDepartmentByName(idOrName);
+  }
+  async nameTakenInDepartment(
+    displayName: string,
+    departmentId: string,
+  ): Promise<boolean> {
+    return (await this.resolve()).nameTakenInDepartment(
+      displayName,
+      departmentId,
+    );
   }
   async savePredictions(
     userId: string,

@@ -324,6 +324,18 @@ export class DrizzleStore implements DataStore {
     return this.createDepartment(trimmed);
   }
 
+  async nameTakenInDepartment(
+    displayName: string,
+    departmentId: string,
+  ): Promise<boolean> {
+    const norm = displayName.trim().toLowerCase();
+    const rows = await this.db
+      .select({ name: schema.users.displayName })
+      .from(schema.users)
+      .where(eq(schema.users.departmentId, departmentId));
+    return rows.some((r) => r.name.trim().toLowerCase() === norm);
+  }
+
   async createUser(
     displayName: string,
     department: string,

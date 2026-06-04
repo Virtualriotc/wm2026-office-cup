@@ -172,3 +172,27 @@ describe("signOut", () => {
     expect(resumed.ok).toBe(true);
   });
 });
+
+describe("createAccount — duplicate name+department guard", () => {
+  it("rejects a second signup with the SAME name in the SAME department", async () => {
+    const first = await createAccount("Vatsal", "Dup Lane A", true);
+    expect(first.ok).toBe(true);
+    const dup = await createAccount("Vatsal", "Dup Lane A", true);
+    expect(dup.ok).toBe(false);
+    if (!dup.ok) expect(dup.error).toBe(COPY.errors.nameTaken);
+  });
+
+  it("is case-insensitive and trims (Vatsal == ' vatsal ')", async () => {
+    const first = await createAccount("Vatsal", "Dup Lane B", true);
+    expect(first.ok).toBe(true);
+    const dup = await createAccount("  vatsal ", "Dup Lane B", true);
+    expect(dup.ok).toBe(false);
+  });
+
+  it("ALLOWS the same name in a DIFFERENT department", async () => {
+    const a = await createAccount("Vatsal", "Dup Lane C", true);
+    expect(a.ok).toBe(true);
+    const b = await createAccount("Vatsal", "Dup Lane D", true);
+    expect(b.ok).toBe(true);
+  });
+});

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import type { CopyShape } from "@/lib/copy";
 import { fill } from "@/lib/copy";
 import { Card, Button } from "@/components/ui";
@@ -38,17 +39,28 @@ export function AccountManage({
   function handleRemove() {
     startTransition(async () => {
       await removeMe();
+      // The server has deleted the user + cleared the session. We do NOT
+      // router.refresh() here: that re-renders the account page into its
+      // signed-out state and unmounts THIS component, so the confirmation below
+      // would never show — the old bug made a successful delete look like it
+      // silently bounced you to the join form. Instead we keep the success card;
+      // the session is already gone, so any navigation lands signed-out.
       setDone(true);
-      router.refresh();
     });
   }
 
   if (done) {
     return (
-      <Card popIn className="mx-auto w-full max-w-[34rem] p-6">
-        <p className="font-bold" role="status">
+      <Card popIn className="mx-auto w-full max-w-[34rem] p-6 text-center">
+        <p className="display text-[1.3rem]">{copy.account.removeDoneTitle}</p>
+        <p className="mt-2 font-medium" role="status">
           {copy.account.removeDone}
         </p>
+        <div className="mt-5 flex justify-center">
+          <Link href="/" className="nb-btn nb-btn--primary no-underline">
+            {copy.account.removeDoneCta}
+          </Link>
+        </div>
       </Card>
     );
   }

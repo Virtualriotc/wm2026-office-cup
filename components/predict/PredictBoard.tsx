@@ -281,6 +281,7 @@ function MatchdaySection({
             match={m}
             index={i}
             open={signedIn}
+            previewOnly={!signedIn}
             selected={picks[m.id]}
             consensus={consensus[m.id]}
             onSelect={onSelect}

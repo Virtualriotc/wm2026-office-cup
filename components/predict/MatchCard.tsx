@@ -19,6 +19,9 @@ export interface MatchCardProps {
   open: boolean;
   /** The user's current pick for this match, if any. */
   selected?: Outcome;
+  /** Not signed in yet: show a "join to pick" prompt instead of the read-only
+   *  LockedView, so an unsigned visitor isn't told an OPEN match is "locked". */
+  previewOnly?: boolean;
   /** Confirmed result, when the match is final. */
   result?: Result;
   /** Office consensus (optional crowd signal — never odds). */
@@ -43,6 +46,7 @@ export function MatchCard({
   selected,
   result,
   consensus,
+  previewOnly,
   onSelect,
   onLock,
 }: MatchCardProps) {
@@ -78,6 +82,13 @@ export function MatchCard({
           selected={selected}
           onSelect={onSelect}
         />
+      ) : previewOnly ? (
+        <p
+          className="mt-3 text-[0.9rem] font-bold"
+          style={{ color: "var(--color-royal)" }}
+        >
+          {COPY.predict.signInToPick}
+        </p>
       ) : (
         <LockedView match={match} knockout={knockout} selected={selected} result={result} points={points} />
       )}

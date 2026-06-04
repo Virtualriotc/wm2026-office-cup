@@ -144,6 +144,7 @@ export interface CopyShape {
     saveSuccess: string;
     saveError: string;
     postLockNote: string;
+    signInToPick: string;
     consensusLabel: string; // "Office picked"
     empty: string;
   };
@@ -366,6 +367,7 @@ const en: CopyShape = {
     saveError:
       "Couldn't save your picks. Check your connection, then tap save again.",
     postLockNote: "Picks lock at kickoff and go public. No edits after that.",
+    signInToPick: "Join with a code above to lock in your pick →",
     consensusLabel: "Office picked",
     empty: "All caught up. Your next picks open after tonight's games.",
   },

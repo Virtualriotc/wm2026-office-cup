@@ -223,12 +223,25 @@ export function computeConsensus(
   }
   const counts: Record<Outcome, number> = { home: 0, draw: 0, away: 0 };
   for (const p of forMatch) counts[p.pick] += 1;
-  const pct = (c: number) => Math.round((c / n) * 100);
+  // Largest-remainder rounding so the three shares always sum to EXACTLY 100.
+  // Independent Math.round can yield 99 or 101 (e.g. 1/3 each -> 33/33/33 = 99),
+  // which leaves a visible gap (or overflow) in the consensus bar.
+  const raw = [counts.home, counts.draw, counts.away].map((c) => (c / n) * 100);
+  const floors = raw.map((v) => Math.floor(v));
+  const remainder = 100 - floors.reduce((a, b) => a + b, 0);
+  const byFrac = raw
+    .map((v, i) => ({ i, frac: v - Math.floor(v) }))
+    .sort((a, b) => b.frac - a.frac);
+  const pcts = [...floors];
+  for (let k = 0; k < remainder && k < byFrac.length; k++) {
+    const idx = byFrac[k]!.i;
+    pcts[idx] = pcts[idx]! + 1;
+  }
   return {
     matchId,
-    pctHome: pct(counts.home),
-    pctDraw: pct(counts.draw),
-    pctAway: pct(counts.away),
+    pctHome: pcts[0]!,
+    pctDraw: pcts[1]!,
+    pctAway: pcts[2]!,
     n,
   };
 }

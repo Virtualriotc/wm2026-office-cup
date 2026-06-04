@@ -95,7 +95,15 @@ export function PredictBoard({
 
   const handleSave = () => {
     if (!canSave) return;
-    const payload = stillOpen
+    // Send EVERY pick for matches that were open at page load — NOT just the
+    // ones the client still considers open. The client-side countdown can flip a
+    // card to "locked" a beat before (or, with clock skew, BEFORE) the server's
+    // authoritative kickoff lock. Filtering by the client view used to silently
+    // DROP those picks: they never reached the server, so they couldn't even be
+    // reported as "locked at kickoff" — the pick just vanished. The server is the
+    // source of truth: it saves any still-open match and returns rejectedLocked
+    // for genuinely-locked ones, which the SaveBar surfaces.
+    const payload = openMatches
       .filter((m) => picks[m.id] !== undefined)
       .map((m) => ({ matchId: m.id, pick: picks[m.id]! }));
 

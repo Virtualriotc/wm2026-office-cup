@@ -116,8 +116,15 @@ function YouTab({ view }: { view: RelativeView }) {
 
   const you = view.you;
   const climb = climbLabel(you.climbDelta);
-  // Percentile framing: top X% (never "#N of M").
+  // Percentile framing: top X% (never "#N of M"). But "Top X%" only reads as a
+  // flex near the top — at the bottom it produces "Top 100% and climbing", which
+  // contradicts the board. So only show the percentage in the top half; below
+  // that, show a plain encouraging line (no misleading number).
   const topPct = Math.max(1, you.percentile);
+  const rankNote =
+    topPct <= 50
+      ? fill(COPY.race.yourRankNote, { pct: topPct })
+      : COPY.race.yourRankNoteClimb;
 
   return (
     <div className="flex flex-col gap-3">
@@ -140,7 +147,7 @@ function YouTab({ view }: { view: RelativeView }) {
         <div className="min-w-0 flex-1">
           <div className="truncate text-[1.05rem] font-extrabold">{you.displayName}</div>
           <div className="mt-0.5 text-[0.82rem] font-semibold" style={{ color: "var(--color-muted)" }}>
-            {you.departmentName} · {fill(COPY.race.yourRankNote, { pct: topPct })}
+            {you.departmentName} · {rankNote}
           </div>
           {climb ? (
             <div

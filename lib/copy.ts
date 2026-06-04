@@ -168,7 +168,8 @@ export interface CopyShape {
     topTipsterTitle: string;
     yourRankLabel: string;
     yourRankValue: string; // "#{rank} · up {delta}"
-    yourRankNote: string; // "Top {pct}% — keep climbing"
+    yourRankNote: string; // "Top {pct}% — keep climbing" (top half only)
+    yourRankNoteClimb: string; // shown lower down, no misleading percentage
     shareCta: string;
     fairnessNote: string;
   };
@@ -388,6 +389,7 @@ const en: CopyShape = {
     yourRankLabel: "Your rank",
     yourRankValue: "#{rank} · up {delta}",
     yourRankNote: "Top {pct}% and climbing",
+    yourRankNoteClimb: "The table's wide open — every pick climbs",
     shareCta: "Share the table",
     fairnessNote:
       "Score is average points per active player, so small teams compete fairly.",

@@ -115,7 +115,10 @@ function NewHereCard({
           transition={{ type: "spring", stiffness: 420, damping: 24 }}
         >
           <h2 className="display text-[1.4rem]">{copy.code.savedTitle}</h2>
-          <p className="text-[0.85rem]" style={{ color: "var(--color-muted)" }}>
+          <p
+            className="text-[0.9rem] font-semibold"
+            style={{ color: "var(--color-ink)" }}
+          >
             {copy.code.savedSubhead}
           </p>
           <output

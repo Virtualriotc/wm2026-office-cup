@@ -338,9 +338,9 @@ const en: CopyShape = {
   code: {
     eyebrow: "Have a code?",
     getMyCodeCta: "Get my code",
-    savedTitle: "Here's your code",
+    savedTitle: "Save this code now",
     savedSubhead:
-      "This is how you get back in. Save it somewhere safe. We can only show it once.",
+      "It's your ONLY way back in — no email, no password, no reset, no recovery. Screenshot it or drop it in your notes before you carry on. Lose it and you'd start over.",
     copyCta: "Copy my code",
     copied: "Copied",
     continueCta: "Got it, let's pick",

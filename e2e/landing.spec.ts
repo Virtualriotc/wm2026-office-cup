@@ -7,12 +7,15 @@ test.describe("Landing", () => {
     await page.goto("/");
   });
 
-  test("renders the hero headline and subhead", async ({ page }) => {
+  test("renders the hero headline and the what-is-this line", async ({ page }) => {
     // The display headline is split into two lines: "WM 2026" / "OFFICE CUP".
     await expect(
       page.getByRole("heading", { level: 1 }).filter({ hasText: /OFFICE CUP/i }),
     ).toBeVisible();
-    await expect(page.getByText(/Call the winners/i).first()).toBeVisible();
+    // The bold one-liner above the CTA (replaced the old "Call the winners" tag).
+    await expect(
+      page.getByText(/which department has the best ball knowledge/i).first(),
+    ).toBeVisible();
   });
 
   test("shows the unofficial / no-betting tag", async ({ page }) => {

@@ -1,7 +1,6 @@
+import { redirect } from "next/navigation";
 import { COPY } from "@/lib/copy";
-import { getStore, isMockStore } from "@/lib/data";
 import { getCurrentUser } from "@/lib/auth";
-import { JoinCards } from "@/components/landing/JoinCards";
 import { AccountManage } from "@/components/account/AccountManage";
 
 // Account / join surface. The TopNav "Account" pill and the signed-out predict
@@ -12,10 +11,14 @@ import { AccountManage } from "@/components/account/AccountManage";
 export const dynamic = "force-dynamic";
 
 export default async function AccountPage() {
-  const [departments, user] = await Promise.all([
-    getStore().getDepartments(),
-    getCurrentUser(),
-  ]);
+  const user = await getCurrentUser();
+  // Signed OUT -> go home. Joining belongs on the landing page, where the
+  // one-time code reveal survives. A signed-out /account used to host the full
+  // join form, but after a signup the Server Action revalidated THIS route,
+  // swapped the JoinCards reveal for the signed-in management view, and the code
+  // vanished before the user could save it (they'd be locked out). Home has both
+  // join + resume, so nothing is lost and the swap can never happen here.
+  if (!user) redirect("/");
 
   return (
     <div className="flex flex-col items-center gap-8 py-6">
@@ -27,15 +30,11 @@ export default async function AccountPage() {
           className="max-w-[34rem] text-[0.95rem]"
           style={{ color: "var(--color-muted)" }}
         >
-          {user ? COPY.account.removeBody : COPY.join.subhead}
+          {COPY.account.removeBody}
         </p>
       </header>
 
-      {user ? (
-        <AccountManage copy={COPY} displayName={user.displayName} />
-      ) : (
-        <JoinCards copy={COPY} departments={departments} />
-      )}
+      <AccountManage copy={COPY} displayName={user.displayName} />
 
       <p
         className="max-w-[34rem] text-center text-[0.8rem]"
@@ -43,12 +42,6 @@ export default async function AccountPage() {
       >
         {COPY.disclaimers.privacyFooter}
       </p>
-
-      {isMockStore() ? (
-        <p className="nb-pill" style={{ fontSize: "0.7rem" }}>
-          Demo mode — running on sample data (no database configured)
-        </p>
-      ) : null}
     </div>
   );
 }

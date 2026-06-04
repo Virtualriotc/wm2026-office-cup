@@ -60,16 +60,14 @@ test.describe("Landing", () => {
     await expect(nav.getByRole("link", { name: "Account" })).toBeVisible();
   });
 
-  test("Account nav link does not 404", async ({ page }) => {
+  test("Account nav link redirects signed-out visitors to the join surface", async ({ page }) => {
     await page.getByRole("navigation", { name: "Primary" })
       .getByRole("link", { name: "Account" })
       .click();
-    await expect(page).toHaveURL(/\/account$/);
-    // A 404 renders Next's not-found; assert we landed on the join surface
-    // (the account page h1 + the "Have a code?" card both render).
-    await expect(
-      page.getByRole("heading", { level: 1, name: /^Account$/ }),
-    ).toBeVisible();
+    // Signed out, /account redirects HOME (joining belongs there, where the
+    // one-time code reveal survives — not on /account, which would swap it away).
+    await expect(page).not.toHaveURL(/\/account/);
+    // Home carries both join cards, so the funnel isn't broken.
     await expect(
       page.getByRole("heading", { name: /Welcome back/i }),
     ).toBeVisible();

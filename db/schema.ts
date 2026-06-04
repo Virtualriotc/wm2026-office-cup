@@ -63,6 +63,14 @@ export const users = pgTable(
   (t) => ({
     tokenHashIdx: uniqueIndex("users_token_hash_idx").on(t.tokenHash),
     deptIdx: index("users_department_idx").on(t.departmentId),
+    // Airtight backstop for the duplicate-name guard: the app-level check
+    // (nameTakenInDepartment) is check-then-insert and can lose a millisecond
+    // race across Vercel instances, so the DB enforces uniqueness too. Applied
+    // to prod manually (CREATE UNIQUE INDEX) since the DB is already migrated.
+    nameDeptUnq: uniqueIndex("users_name_dept_unq").on(
+      t.departmentId,
+      t.displayName,
+    ),
   }),
 );
 

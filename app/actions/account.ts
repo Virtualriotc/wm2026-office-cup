@@ -165,7 +165,17 @@ export async function createAccount(
     if (await store.nameTakenInDepartment(name, dept.id)) {
       return { ok: false, error: COPY.errors.nameTaken };
     }
-    const { user, code } = await store.createUser(name, dept.id);
+    let created;
+    try {
+      created = await store.createUser(name, dept.id);
+    } catch (e) {
+      // The DB UNIQUE index caught a concurrent duplicate the check raced past.
+      if (e instanceof Error && e.message === "NAME_TAKEN") {
+        return { ok: false, error: COPY.errors.nameTaken };
+      }
+      throw e;
+    }
+    const { user, code } = created;
     // Open the session immediately so "Got it — start picking" lands signed in.
     await createSession(user.tokenHash);
 

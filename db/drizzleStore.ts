@@ -355,14 +355,26 @@ export class DrizzleStore implements DataStore {
       isOrganizer: false,
       joinedAt: this.now().toISOString(),
     };
-    await this.db.insert(schema.users).values({
-      id: user.id,
-      displayName: user.displayName,
-      departmentId: user.departmentId,
-      tokenHash: user.tokenHash,
-      isOrganizer: user.isOrganizer,
-      joinedAt: new Date(user.joinedAt),
-    });
+    try {
+      await this.db.insert(schema.users).values({
+        id: user.id,
+        displayName: user.displayName,
+        departmentId: user.departmentId,
+        tokenHash: user.tokenHash,
+        isOrganizer: user.isOrganizer,
+        joinedAt: new Date(user.joinedAt),
+      });
+    } catch (e) {
+      // The (department_id, display_name) UNIQUE index rejected a concurrent
+      // duplicate the app-level check raced past. Surface it as the friendly
+      // name-taken signal so createAccount returns the right message.
+      const pgCode = (e as { code?: string } | null)?.code;
+      const msg = e instanceof Error ? e.message : String(e);
+      if (pgCode === "23505" || /users_name_dept_unq/.test(msg)) {
+        throw new Error("NAME_TAKEN");
+      }
+      throw e;
+    }
     return { user, code };
   }
 

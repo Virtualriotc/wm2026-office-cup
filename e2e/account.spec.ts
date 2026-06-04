@@ -8,8 +8,8 @@ test.describe("Account flow", () => {
   }) => {
     const code = await createAccount(page, { name: "Test Existing Dept" });
     expect(code).toMatch(CODE_RE);
-    // Reveal copy is present.
-    await expect(page.getByText(/Here's your code/i)).toBeVisible();
+    // Reveal copy is present (the stronger "save it, no recovery" warning).
+    await expect(page.getByText(/Save this code now/i)).toBeVisible();
     await expect(page.getByRole("button", { name: /Got it, let's pick/i })).toBeVisible();
   });
 

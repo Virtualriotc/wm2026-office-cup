@@ -503,29 +503,38 @@ export function fill(
 }
 
 /**
- * Predict-screen FAQ — the rules in one place, in cup voice. Standalone (not on
- * CopyShape) so it stays a simple editable list. Rendered by PredictFaq.
+ * Landing FAQ — the rules in one place, in plain language. Standalone (not on
+ * CopyShape) so it stays a simple editable list. Rendered by Faq, under the
+ * always-visible scoring table.
  */
 export const PREDICT_FAQ: ReadonlyArray<{ q: string; a: string }> = [
   {
-    q: "How do points work?",
-    a: "Call a match right and you bank points — and the deeper the cup goes, the bigger the haul. Group stage: 1 pt. Round of 32: 2. Round of 16: 3. Quarter-final: 4. Semi-final: 5. Final: 6. Win, draw, or upset — a right call is a right call. Miss it, nada.",
-  },
-  {
-    q: "How do I pick?",
-    a: "One tap. Tap who you reckon wins (or Draw — group stage only). Change your mind as often as you like, right up until kickoff.",
+    q: "How do I make a pick?",
+    a: "Tap the team you think will win. In the group stage you can also pick a draw. Change your pick as often as you like, up until kickoff.",
   },
   {
     q: "When do picks lock?",
-    a: "At kickoff, on the dot. The whistle goes, your pick is sealed and turns public. No edits after that — so call it with your chest.",
+    a: "At kickoff. Once a match starts, your pick is locked and becomes visible to everyone. You can't change it after that.",
+  },
+  {
+    q: "Do wrong picks cost me points?",
+    a: "No. A correct pick scores the round's points, and a wrong one scores zero. There's no penalty, so it's always worth picking every match.",
   },
   {
     q: "How does my department win?",
-    a: "Every right call shoves your department further down the pitch. We score the average points per active player, so a small squad can still topple a big one. Knockouts are worth more, so it's never over.",
+    a: "We average each department's points across its active players, so a smaller team can still beat a bigger one. Knockout rounds are worth more, so the table keeps moving right up to the final.",
   },
   {
-    q: "I lost my code!",
-    a: "Oof. Your code is the only way back in, and there's no recovery — no email, no reset. Save it somewhere safe: a screenshot, your notes app, anywhere you'll actually find it.",
+    q: "What is the jersey pool?",
+    a: "An optional side prize. Everyone who joins chips in, and the pot pays for one jersey of the winner's choice. You join from your Account screen any time, and you can play the whole tournament without it.",
+  },
+  {
+    q: "Who wins the jersey?",
+    a: "The highest-ranked player who joined the pool. If the overall number one didn't join, it goes to the top-ranked person who did.",
+  },
+  {
+    q: "I lost my code. Can I get it back?",
+    a: "No. Your code is the only way into your account, and there's no email or password to recover it. Save it somewhere you'll find again, like a screenshot or your notes.",
   },
 ];
 
@@ -534,20 +543,49 @@ export const PREDICT_FAQ: ReadonlyArray<{ q: string; a: string }> = [
  * Rendered by JerseyPool on the Account page + nudged after signup.
  */
 export const JERSEY = {
-  title: "Jersey Pool",
+  title: "Jersey pool",
   badge: "Optional",
   blurb:
-    "Want something real on the line? Opt in, and the highest-ranked player who's in takes home a jersey of their choice. Everyone who opts in splits the cost evenly — that's what pays for it. Not fussed? Play the whole cup without it, no problem.",
+    "An optional side prize. Everyone who joins splits the cost evenly, and the pot pays for one jersey of the winner's choice. The highest-ranked player who joined takes it home. You can play the whole tournament without joining.",
   agree:
-    "Tapping in opts you into the pool and the cost split, and you agree to the above.",
-  optInCta: "Count me in",
-  optOutCta: "Pull me out",
-  working: "One sec…",
-  inTitle: "You're in the pool 🏆",
+    "Joining adds you to the pool and the shared cost, and confirms you accept these terms.",
+  optInCta: "Join the pool",
+  optOutCta: "Leave the pool",
+  working: "Saving…",
+  inTitle: "You're in the pool",
   inBody:
-    "Finish top of the opted-in players and the jersey's yours. Changed your mind? You can pull out any time.",
-  outTitle: "Fancy a jersey?",
-  /** One-line nudge shown on the code reveal after signup. */
-  nudge:
-    "P.S. there's an optional jersey pool — opt in from your Account screen whenever you like.",
+    "Finish top of the players who joined and the jersey's yours. You can leave any time before the final.",
+  outTitle: "Fancy the jersey?",
+};
+
+/**
+ * Jersey intro — the fuller pitch shown once, in a popup, right after a new
+ * player saves their code (before they reach the predictions). This is the
+ * "more info" version of the Account toggle, adapted from the organiser's note.
+ * Rendered by JerseyIntroModal.
+ */
+export const JERSEY_INTRO = {
+  eyebrow: "One optional extra",
+  title: "The jersey pool",
+  lead:
+    "Alongside the game there's a voluntary jersey prize pool. Joining is entirely up to you.",
+  points: [
+    { h: "The prize", b: "One jersey of the winner's choice." },
+    {
+      h: "Who pays",
+      b: "Everyone who joins splits the cost evenly. Nobody else pays a thing.",
+    },
+    {
+      h: "Who wins it",
+      b: "The highest-ranked player who joined. If the number one didn't join, it goes to the top-ranked person who did.",
+    },
+    {
+      h: "Still optional",
+      b: "You can play the whole tournament, full ranking and all, without joining.",
+    },
+  ],
+  agree: "Joining adds you to the pool and the shared cost, and means you accept these terms.",
+  joinCta: "Join the pool",
+  skipCta: "Maybe later",
+  footnote: "You can change this any time from your Account screen.",
 };

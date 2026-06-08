@@ -4,7 +4,7 @@ import { useId, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import type { CopyShape } from "@/lib/copy";
-import { JERSEY } from "@/lib/copy";
+import { JerseyIntroModal } from "@/components/landing/JerseyIntroModal";
 import type { Department } from "@/lib/types";
 import { Button, Card, Field, Input, Select } from "@/components/ui";
 import { usePrefersReducedMotion } from "@/components/ui/useReducedMotion";
@@ -71,6 +71,9 @@ function NewHereCard({
   const [code, setCode] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [copyFailed, setCopyFailed] = useState(false);
+  // After the code is saved + Continue tapped, offer the optional jersey pool
+  // in a popup (never over the code itself, so the code can't be lost).
+  const [showJersey, setShowJersey] = useState(false);
   const [pending, startTransition] = useTransition();
 
   const addingNew = department === ADD_NEW_DEPARTMENT;
@@ -112,7 +115,8 @@ function NewHereCard({
   // --- one-time code reveal ---
   if (code) {
     return (
-      <AnimatePresence mode="wait">
+      <>
+        <AnimatePresence mode="wait">
         <motion.div
           key="code"
           className="flex flex-col gap-4"
@@ -150,18 +154,16 @@ function NewHereCard({
           <Button
             type="button"
             variant="primary"
-            onClick={() => router.push(NEXT_ROUTE)}
+            onClick={() => setShowJersey(true)}
           >
             {copy.code.continueCta} →
           </Button>
-          <p
-            className="text-center text-[0.72rem]"
-            style={{ color: "var(--color-muted)" }}
-          >
-            {JERSEY.nudge}
-          </p>
         </motion.div>
-      </AnimatePresence>
+        </AnimatePresence>
+        {showJersey ? (
+          <JerseyIntroModal onDone={() => router.push(NEXT_ROUTE)} />
+        ) : null}
+      </>
     );
   }
 

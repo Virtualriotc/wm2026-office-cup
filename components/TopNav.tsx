@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { CopyShape } from "@/lib/copy";
 import { Pill, Tag } from "@/components/ui";
+import { PlayerCountBadge } from "@/components/PlayerCountBadge";
 
 const LINKS = [
   { href: "/predict", key: "predict" as const },
@@ -27,7 +28,10 @@ export function TopNav({ copy }: { copy: CopyShape }) {
         <Link href="/" className="display text-[1.15rem] no-underline">
           {copy.app.brand}
         </Link>
-        <Tag>{copy.app.unofficialTag}</Tag>
+        <div className="flex items-center gap-2">
+          <PlayerCountBadge />
+          <Tag>{copy.app.unofficialTag}</Tag>
+        </div>
       </div>
       <nav aria-label="Primary" className="flex flex-wrap gap-2">
         {LINKS.map((link) => {

@@ -15,7 +15,7 @@
 // now >= match.kickoff — is enforced HERE, server-side, regardless of caller.
 // ============================================================================
 
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, count } from "drizzle-orm";
 import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 import type { ExtractTablesWithRelations } from "drizzle-orm";
 
@@ -253,6 +253,11 @@ export class DrizzleStore implements DataStore {
       .where(eq(schema.users.tokenHash, tokenHash))
       .limit(1);
     return rows[0] ? toUser(rows[0]) : null;
+  }
+
+  async getUserCount(): Promise<number> {
+    const rows = await this.db.select({ n: count() }).from(schema.users);
+    return rows[0]?.n ?? 0;
   }
 
   async getPredictionsForUser(userId: string): Promise<Prediction[]> {

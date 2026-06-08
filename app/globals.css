@@ -319,6 +319,28 @@ select.nb-input::-ms-expand {
   display: none;
 }
 
+/* LIVE DOT — the pulsing green signal on the player-count badge. The expanding
+   ring fades out to read as "live". Frozen by the reduced-motion guard below. */
+.live-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background: var(--color-green);
+  box-shadow: 0 0 0 0 rgba(37, 128, 67, 0.55);
+  animation: live-pulse 1.8s ease-out infinite;
+}
+@keyframes live-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(37, 128, 67, 0.55);
+  }
+  70% {
+    box-shadow: 0 0 0 0.5rem rgba(37, 128, 67, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(37, 128, 67, 0);
+  }
+}
+
 /* ----------------------------------------------------------------------------
    Reduced-motion base: kill non-essential animation app-wide. Motion
    components ALSO branch on this in JS; this is the CSS safety net.

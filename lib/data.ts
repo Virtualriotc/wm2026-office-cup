@@ -94,6 +94,8 @@ export interface DataStore {
   getPredictableMatches(): Promise<Match[]>;
   getUser(id: string): Promise<User | null>;
   getUserByToken(tokenHash: string): Promise<User | null>;
+  /** Total number of registered players (drives the live count badge). */
+  getUserCount(): Promise<number>;
   getPredictionsForUser(userId: string): Promise<Prediction[]>;
   getResults(): Promise<Result[]>;
   getLeaderboard(): Promise<LeaderboardRow[]>;
@@ -453,6 +455,10 @@ export class MockStore implements DataStore {
     return this.users.find((u) => u.tokenHash === tokenHash) ?? null;
   }
 
+  async getUserCount(): Promise<number> {
+    return this.users.length;
+  }
+
   async getPredictionsForUser(userId: string): Promise<Prediction[]> {
     return this.predictions
       .filter((p) => p.userId === userId)
@@ -793,6 +799,10 @@ class NeonStore implements DataStore {
   }
   async getUserByToken(tokenHash: string): Promise<User | null> {
     return (await this.resolve()).getUserByToken(tokenHash);
+  }
+
+  async getUserCount(): Promise<number> {
+    return (await this.resolve()).getUserCount();
   }
   async getPredictionsForUser(userId: string): Promise<Prediction[]> {
     return (await this.resolve()).getPredictionsForUser(userId);

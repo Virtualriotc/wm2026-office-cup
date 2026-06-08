@@ -275,10 +275,6 @@ function NewHereCard({
         <span>{copy.join.consentCheckbox}</span>
       </label>
 
-      <p className="text-[0.78rem]" style={{ color: "var(--color-muted)" }}>
-        {copy.join.prizeLine}
-      </p>
-
       {error ? (
         <p role="alert" className="text-[0.8rem] font-bold"
           style={{ color: "var(--color-coral)" }}>
@@ -289,10 +285,6 @@ function NewHereCard({
       <Button type="submit" variant="primary" disabled={!canSubmit || pending}>
         {pending ? "…" : copy.code.getMyCodeCta + " →"}
       </Button>
-
-      <p className="text-[0.72rem]" style={{ color: "var(--color-muted)" }}>
-        {copy.join.privacyFooter}
-      </p>
     </form>
   );
 }

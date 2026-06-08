@@ -88,9 +88,7 @@ export interface CopyShape {
     /** Inline action to drop the typed field and go back to the picker. */
     departmentBackToList: string;
     consentCheckbox: string;
-    prizeLine: string;
     primaryCta: string;
-    privacyFooter: string;
   };
 
   /** Signed-in account controls: sign out + self-service data removal. */
@@ -280,7 +278,7 @@ const en: CopyShape = {
     titleLine1: "WM 2026",
     titleLine2: "OFFICE CUP",
     about:
-      "Pick a username and your department (add a new one if you like), save your login code, then predict who wins each match — and help answer the big question: which department has the best ball knowledge?",
+      "Predict who wins each match and help settle the big one: which department has the best ball knowledge?",
     primaryCta: "Create your account",
     ctaHelper: "60 seconds. No password, no email.",
     haveCodeCta: "Got a code? Paste to continue",
@@ -298,7 +296,7 @@ const en: CopyShape = {
   join: {
     eyebrow: "New here?",
     title: "Grab your spot",
-    subhead: "No password, no email. Just a name and your team.",
+    subhead: "Just a name and your department, and you're in.",
     nameLabel: "What should we call you?",
     namePlaceholder: "e.g. Max Stegemann",
     nameHelper: "A nickname's perfect. Keep it work-friendly.",
@@ -310,12 +308,8 @@ const en: CopyShape = {
     newDepartmentHelper: "Start a new lane. Your teammates can join it after you.",
     departmentBackToList: "Pick from the list instead",
     consentCheckbox:
-      "I'm in for the fun of it. I get that this is a private game, not run by or the responsibility of Enpal. I'm 18 or over, happy to show my name and department on the board, and I get that my data is hosted on Vercel & Neon (US). I can remove it myself anytime from Account, or ask the organiser.",
-    prizeLine:
-      "No entry fee, no stakes, just bragging rights. The sharpest tipsters get a small thank-you gift at the end.",
+      "I'm 18 or over and in for fun. This is a private game, not run by or endorsed by Enpal. I'm happy to show my name and department on the board, and to have my data stored on Vercel and Neon (US), which I can delete anytime from Account.",
     primaryCta: "Pick my matches",
-    privacyFooter:
-      "We keep your nickname, department, picks, and a private code. Nothing else: no email, no tracking. Hosted on Vercel & Neon (US) under standard data-transfer safeguards. Remove your data yourself anytime from Account, or ask the organiser — and everything goes after the final.",
   },
 
   account: {

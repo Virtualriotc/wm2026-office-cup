@@ -22,6 +22,7 @@
 import type {
   Department,
   User,
+  JerseyParticipant,
   Match,
   Prediction,
   Result,
@@ -116,6 +117,10 @@ export interface DataStore {
    * so removing the predictions is enough for them to vanish.
    */
   deleteUser(userId: string): Promise<void>;
+  /** Set a user's voluntary jersey-pool opt-in flag. */
+  setJerseyOptIn(userId: string, optIn: boolean): Promise<void>;
+  /** Everyone currently opted into the jersey pool (for the organizer's list). */
+  getJerseyOptIns(): Promise<JerseyParticipant[]>;
   /** Create a department from a free-form name (idempotent on slug). */
   createDepartment(name: string): Promise<Department>;
   /**
@@ -297,6 +302,7 @@ export class MockStore implements DataStore {
       tokenHash: `mock-hash-${name.toLowerCase().replace(/\s+/g, "-")}`,
       isOrganizer,
       joinedAt: iso("2026-06-02T09:00:00Z"),
+      jerseyOptIn: false,
     });
 
     // "you" is the demo lead, Max Stegemann (Energy CS). Sofia is the organizer.
@@ -524,6 +530,7 @@ export class MockStore implements DataStore {
       departmentId: dept.id,
       tokenHash,
       isOrganizer: false,
+      jerseyOptIn: false,
       joinedAt: this.now().toISOString(),
     };
     this.users.push(user);
@@ -537,6 +544,22 @@ export class MockStore implements DataStore {
     this.users = this.users.filter((u) => u.id !== userId);
     this.predictions = this.predictions.filter((p) => p.userId !== userId);
     delete this.previousUserRanks[userId];
+  }
+
+  async setJerseyOptIn(userId: string, optIn: boolean): Promise<void> {
+    const u = this.users.find((x) => x.id === userId);
+    if (u) u.jerseyOptIn = optIn;
+  }
+
+  async getJerseyOptIns(): Promise<JerseyParticipant[]> {
+    const deptName = new Map(this.departments.map((d) => [d.id, d.name]));
+    return this.users
+      .filter((u) => u.jerseyOptIn)
+      .map((u) => ({
+        displayName: u.displayName,
+        departmentName: deptName.get(u.departmentId) ?? u.departmentId,
+      }))
+      .sort((a, b) => a.displayName.localeCompare(b.displayName));
   }
 
   async savePredictions(
@@ -797,6 +820,12 @@ class NeonStore implements DataStore {
   }
   async deleteUser(userId: string): Promise<void> {
     return (await this.resolve()).deleteUser(userId);
+  }
+  async setJerseyOptIn(userId: string, optIn: boolean): Promise<void> {
+    return (await this.resolve()).setJerseyOptIn(userId, optIn);
+  }
+  async getJerseyOptIns(): Promise<JerseyParticipant[]> {
+    return (await this.resolve()).getJerseyOptIns();
   }
   async createDepartment(name: string): Promise<Department> {
     return (await this.resolve()).createDepartment(name);

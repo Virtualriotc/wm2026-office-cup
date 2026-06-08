@@ -22,6 +22,7 @@ import type { ExtractTablesWithRelations } from "drizzle-orm";
 import type {
   Department,
   User,
+  JerseyParticipant,
   Match,
   Prediction,
   Result,
@@ -86,6 +87,7 @@ function toUser(row: typeof schema.users.$inferSelect): User {
     departmentId: row.departmentId,
     tokenHash: row.tokenHash,
     isOrganizer: row.isOrganizer,
+    jerseyOptIn: row.jerseyOptIn,
     joinedAt: row.joinedAt.toISOString(),
   };
 }
@@ -353,6 +355,7 @@ export class DrizzleStore implements DataStore {
       departmentId: dept.id,
       tokenHash,
       isOrganizer: false,
+      jerseyOptIn: false,
       joinedAt: this.now().toISOString(),
     };
     try {
@@ -391,6 +394,30 @@ export class DrizzleStore implements DataStore {
       .delete(schema.leaderboardUser)
       .where(eq(schema.leaderboardUser.userId, userId));
     await this.db.delete(schema.users).where(eq(schema.users.id, userId));
+  }
+
+  async setJerseyOptIn(userId: string, optIn: boolean): Promise<void> {
+    await this.db
+      .update(schema.users)
+      .set({ jerseyOptIn: optIn })
+      .where(eq(schema.users.id, userId));
+  }
+
+  async getJerseyOptIns(): Promise<JerseyParticipant[]> {
+    const [users, depts] = await Promise.all([
+      this.db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.jerseyOptIn, true)),
+      this.db.select().from(schema.departments),
+    ]);
+    const deptName = new Map(depts.map((d) => [d.id, d.name]));
+    return users
+      .map((u) => ({
+        displayName: u.displayName,
+        departmentName: deptName.get(u.departmentId) ?? u.departmentId,
+      }))
+      .sort((a, b) => a.displayName.localeCompare(b.displayName));
   }
 
   // -- writes: predictions (server-side lock + UNIQUE upsert) ----------------

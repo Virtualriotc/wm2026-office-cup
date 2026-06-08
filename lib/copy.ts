@@ -528,3 +528,26 @@ export const PREDICT_FAQ: ReadonlyArray<{ q: string; a: string }> = [
     a: "Oof. Your code is the only way back in, and there's no recovery — no email, no reset. Save it somewhere safe: a screenshot, your notes app, anywhere you'll actually find it.",
   },
 ];
+
+/**
+ * Jersey prize pool — voluntary opt-in. Standalone copy (not on CopyShape).
+ * Rendered by JerseyPool on the Account page + nudged after signup.
+ */
+export const JERSEY = {
+  title: "Jersey Pool",
+  badge: "Optional",
+  blurb:
+    "Want something real on the line? Opt in, and the highest-ranked player who's in takes home a jersey of their choice. Everyone who opts in splits the cost evenly — that's what pays for it. Not fussed? Play the whole cup without it, no problem.",
+  agree:
+    "Tapping in opts you into the pool and the cost split, and you agree to the above.",
+  optInCta: "Count me in",
+  optOutCta: "Pull me out",
+  working: "One sec…",
+  inTitle: "You're in the pool 🏆",
+  inBody:
+    "Finish top of the opted-in players and the jersey's yours. Changed your mind? You can pull out any time.",
+  outTitle: "Fancy a jersey?",
+  /** One-line nudge shown on the code reveal after signup. */
+  nudge:
+    "P.S. there's an optional jersey pool — opt in from your Account screen whenever you like.",
+};

@@ -255,3 +255,20 @@ export async function signOut(): Promise<{ ok: boolean }> {
   await clearSession();
   return { ok: true };
 }
+
+/**
+ * Opt the signed-in user in/out of the voluntary jersey prize pool. Separate
+ * from everything else — it only flips a flag on their account, and they can
+ * change it any time. Returns the new state so the UI can reflect it.
+ */
+export async function setJerseyOptIn(
+  optIn: boolean,
+): Promise<{ ok: boolean; optedIn: boolean }> {
+  try {
+    const user = await requireUser();
+    await getStore().setJerseyOptIn(user.id, optIn);
+    return { ok: true, optedIn: optIn };
+  } catch {
+    return { ok: false, optedIn: false };
+  }
+}

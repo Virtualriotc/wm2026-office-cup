@@ -44,7 +44,15 @@ export interface User {
   /** SHA-256 hash of the user's access code. The plaintext code is shown ONCE. */
   tokenHash: string;
   isOrganizer: boolean;
+  /** Opted into the (voluntary) jersey prize pool. Default false. */
+  jerseyOptIn: boolean;
   joinedAt: string; // ISO-8601
+}
+
+/** A jersey-pool participant, for the organizer's "who's in" list. */
+export interface JerseyParticipant {
+  displayName: string;
+  departmentName: string;
 }
 
 /** A fixture. Locks at `kickoff`, enforced server-side. */

@@ -4,6 +4,7 @@ import { useId, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import type { CopyShape } from "@/lib/copy";
+import { JERSEY } from "@/lib/copy";
 import type { Department } from "@/lib/types";
 import { Button, Card, Field, Input, Select } from "@/components/ui";
 import { usePrefersReducedMotion } from "@/components/ui/useReducedMotion";
@@ -153,6 +154,12 @@ function NewHereCard({
           >
             {copy.code.continueCta} →
           </Button>
+          <p
+            className="text-center text-[0.72rem]"
+            style={{ color: "var(--color-muted)" }}
+          >
+            {JERSEY.nudge}
+          </p>
         </motion.div>
       </AnimatePresence>
     );

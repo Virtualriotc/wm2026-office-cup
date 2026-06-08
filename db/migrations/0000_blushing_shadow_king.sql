@@ -92,4 +92,5 @@ CREATE UNIQUE INDEX "predictions_user_match_unq" ON "predictions" USING btree ("
 CREATE INDEX "predictions_match_idx" ON "predictions" USING btree ("match_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "users_token_hash_idx" ON "users" USING btree ("token_hash");--> statement-breakpoint
 CREATE INDEX "users_department_idx" ON "users" USING btree ("department_id");--> statement-breakpoint
-CREATE UNIQUE INDEX "users_name_dept_unq" ON "users" USING btree ("department_id","display_name");
+CREATE UNIQUE INDEX "users_name_dept_unq" ON "users" USING btree ("department_id","display_name");--> statement-breakpoint
+ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "jersey_opt_in" boolean DEFAULT false NOT NULL;

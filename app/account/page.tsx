@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { COPY } from "@/lib/copy";
 import { getCurrentUser } from "@/lib/auth";
 import { AccountManage } from "@/components/account/AccountManage";
+import { JerseyPool } from "@/components/account/JerseyPool";
 
 // Account / join surface. The TopNav "Account" pill and the signed-out predict
 // prompt both link here, so it must exist (a missing route 404s mid-funnel).
@@ -35,6 +36,8 @@ export default async function AccountPage() {
       </header>
 
       <AccountManage copy={COPY} displayName={user.displayName} />
+
+      <JerseyPool initialOptedIn={user.jerseyOptIn} />
 
       <p
         className="max-w-[34rem] text-center text-[0.8rem]"

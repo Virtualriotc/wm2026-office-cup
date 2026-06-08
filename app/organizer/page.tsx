@@ -46,10 +46,11 @@ export default async function OrganizerPage() {
   }
 
   const store = getStore();
-  const [matches, results, syncStatus] = await Promise.all([
+  const [matches, results, syncStatus, jerseyOptIns] = await Promise.all([
     store.getMatches(),
     store.getResults(),
     store.getSyncStatus(),
+    store.getJerseyOptIns(),
   ]);
 
   const resultByMatch = new Map<string, Result>();
@@ -76,6 +77,34 @@ export default async function OrganizerPage() {
         <div className="mt-4 border-t pt-4" style={{ borderColor: "var(--color-ink)" }}>
           <SeedButton />
         </div>
+      </Card>
+
+      {/* Jersey pool — who has opted into the voluntary prize pool. */}
+      <Card className="p-4">
+        <h2 className="display text-[1.15rem]">
+          Jersey pool · {jerseyOptIns.length}{" "}
+          {jerseyOptIns.length === 1 ? "person in" : "people in"}
+        </h2>
+        <p className="mt-1 text-[0.8rem]" style={{ color: "var(--color-muted)" }}>
+          They split the cost; the highest-ranked of them wins the jersey.
+        </p>
+        {jerseyOptIns.length === 0 ? (
+          <p className="mt-3 text-[0.85rem]" style={{ color: "var(--color-muted)" }}>
+            No one&apos;s opted in yet.
+          </p>
+        ) : (
+          <ul className="mt-3 flex flex-wrap gap-2">
+            {jerseyOptIns.map((p) => (
+              <li
+                key={p.displayName + p.departmentName}
+                className="nb-pill"
+                style={{ fontSize: "0.78rem" }}
+              >
+                {p.displayName} · {p.departmentName}
+              </li>
+            ))}
+          </ul>
+        )}
       </Card>
 
       <p className="text-[0.8rem]" style={{ color: "var(--color-muted)" }}>

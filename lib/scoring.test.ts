@@ -103,6 +103,7 @@ describe("recomputeLeaderboards", () => {
       tokenHash: "x",
       isOrganizer: false,
       joinedAt: "2026-06-02T00:00:00.000Z",
+      jerseyOptIn: false,
     };
   }
 

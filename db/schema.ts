@@ -56,6 +56,8 @@ export const users = pgTable(
     // SHA-256 hash of the access code. The plaintext code is never stored.
     tokenHash: text("token_hash").notNull(),
     isOrganizer: boolean("is_organizer").notNull().default(false),
+    /** Opted into the voluntary jersey prize pool. */
+    jerseyOptIn: boolean("jersey_opt_in").notNull().default(false),
     joinedAt: timestamp("joined_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

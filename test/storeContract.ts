@@ -59,10 +59,10 @@ export function runStoreContract(label: string, make: MakeContractStore): void {
 
     it("seeds the seed departments and the full fixture list", async () => {
       const depts = await store.getDepartments();
-      // Five Energy lanes + the privacy "Other / prefer not to say" lane.
-      expect(depts.length).toBe(6);
+      // The five Energy lanes (no catch-all lane — everyone picks a real team).
+      expect(depts.length).toBe(5);
       expect(depts.map((d) => d.slug).sort()).toContain("energy-ops");
-      expect(depts.map((d) => d.slug)).toContain("other");
+      expect(depts.map((d) => d.slug)).not.toContain("other");
 
       const matches = await store.getMatches();
       // The full REAL openfootball 2026 schedule: 104 fixtures.

@@ -32,9 +32,6 @@ export const DEPARTMENTS: Department[] = [
   { id: "dept-energy-invoicing", name: "Energy Invoicing", slug: "energy-invoicing", color: "#FFD23F" },
   { id: "dept-energy-cs", name: "Energy CS", slug: "energy-cs", color: "#FF7A59" },
   { id: "dept-energy-finance", name: "Energy Finance", slug: "energy-finance", color: "#6E4FE6" },
-  // A privacy-preserving lane: a joiner who'd rather not be re-identified by
-  // their real department can pick this. Weakens re-identifiability on the board.
-  { id: "dept-other", name: "Other / prefer not to say", slug: "other", color: "#9AA3B2" },
 ];
 
 /** Max length of a typed (free-form) department name, enforced store-side. */

@@ -5,7 +5,6 @@ import {
   PredictBoard,
   type LockedEntry,
 } from "@/components/predict/PredictBoard";
-import { PredictFaq } from "@/components/predict/PredictFaq";
 
 // Always render against the live clock + store: lock state is time-sensitive.
 export const dynamic = "force-dynamic";
@@ -72,16 +71,13 @@ export default async function PredictPage() {
   });
 
   return (
-    <>
-      <PredictBoard
-        signedIn={user !== null}
-        openMatches={openMatches}
-        allMatches={allMatches}
-        existingPicks={existingPicks}
-        lockedEntries={lockedEntries}
-        consensus={consensus}
-      />
-      <PredictFaq />
-    </>
+    <PredictBoard
+      signedIn={user !== null}
+      openMatches={openMatches}
+      allMatches={allMatches}
+      existingPicks={existingPicks}
+      lockedEntries={lockedEntries}
+      consensus={consensus}
+    />
   );
 }

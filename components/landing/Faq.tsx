@@ -1,16 +1,16 @@
 import { PREDICT_FAQ } from "@/lib/copy";
 
 /**
- * The rules, in one place, at the bottom of the predict screen. Native
- * <details> accordions — zero JS, so it hydrates instantly and is CSP-safe.
- * The "+" rotates to an "×" when an item is open.
+ * The rules, in one place, at the bottom of the home page. Native <details>
+ * accordions — zero JS, so it hydrates instantly and is CSP-safe. The "+"
+ * rotates to an "×" when an item is open.
  */
-export function PredictFaq() {
+export function Faq() {
   return (
-    <section className="mx-auto mt-12 w-full max-w-[44rem]">
-      <h2 className="display mb-1 text-[1.4rem]">Good to know</h2>
+    <section className="mx-auto w-full max-w-[44rem]">
+      <h2 className="display mb-1 text-center text-[1.5rem]">Good to know</h2>
       <p
-        className="mb-4 text-[0.85rem]"
+        className="mb-4 text-center text-[0.85rem]"
         style={{ color: "var(--color-muted)" }}
       >
         Everything you need, in one place. Tap a question.

@@ -3,6 +3,7 @@ import { getStore, isMockStore } from "@/lib/data";
 import { Hero } from "@/components/landing/Hero";
 import { JoinCards } from "@/components/landing/JoinCards";
 import { Steps } from "@/components/landing/Steps";
+import { Faq } from "@/components/landing/Faq";
 import { computeFirstKickoff } from "@/components/scoreboard/scoreboardState";
 
 // Landing + JOIN/CODE flow. A server component: it loads the department list
@@ -30,6 +31,8 @@ export default async function HomePage() {
       <JoinCards copy={COPY} departments={departments} />
 
       <Steps copy={COPY} />
+
+      <Faq />
 
       <p
         className="max-w-[34rem] text-center text-[0.8rem]"

@@ -69,6 +69,7 @@ function NewHereCard({
   const [error, setError] = useState<string | null>(null);
   const [code, setCode] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [copyFailed, setCopyFailed] = useState(false);
   const [pending, startTransition] = useTransition();
 
   const addingNew = department === ADD_NEW_DEPARTMENT;
@@ -96,10 +97,14 @@ function NewHereCard({
     try {
       await navigator.clipboard.writeText(code);
       setCopied(true);
+      setCopyFailed(false);
       window.setTimeout(() => setCopied(false), 1800);
     } catch {
-      // Clipboard can be blocked; the code is on screen to copy by hand.
+      // Clipboard blocked (some browsers/contexts). DON'T fail silently — at the
+      // signup moment a missed copy means a lost, unrecoverable code. Tell them
+      // to copy by hand (the code is select-all on screen).
       setCopied(false);
+      setCopyFailed(true);
     }
   }
 
@@ -131,6 +136,16 @@ function NewHereCard({
           <Button type="button" variant="secondary" onClick={onCopy}>
             {copied ? copy.code.copied + " ✓" : copy.code.copyCta}
           </Button>
+          {copyFailed ? (
+            <p
+              className="text-[0.8rem] font-bold"
+              style={{ color: "var(--color-coral)" }}
+              role="alert"
+            >
+              Couldn&apos;t copy automatically — tap the code above to select it,
+              then copy it by hand. Don&apos;t lose it.
+            </p>
+          ) : null}
           <Button
             type="button"
             variant="primary"

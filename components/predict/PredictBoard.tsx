@@ -371,7 +371,7 @@ function JoinPrompt() {
     >
       <p className="font-bold">{COPY.join.subhead}</p>
       <p className="text-[0.85rem]">{COPY.hero.ctaHelper}</p>
-      <Link href="/account" className="no-underline">
+      <Link href="/" className="no-underline">
         <Button variant="primary">{COPY.hero.primaryCta} →</Button>
       </Link>
     </div>

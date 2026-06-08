@@ -15,12 +15,12 @@ const STAGE_ORDER: Stage[] = ["group", "r32", "r16", "qf", "sf", "final"];
 export function Faq() {
   return (
     <section className="mx-auto w-full max-w-[44rem]">
-      <h2 className="display mb-1 text-center text-[1.5rem]">How it works</h2>
+      <h2 className="display mb-1 text-center text-[1.5rem]">Scoring &amp; FAQ</h2>
       <p
         className="mb-5 text-center text-[0.85rem]"
         style={{ color: "var(--color-muted)" }}
       >
-        The scoring, and the questions people usually ask.
+        Points per round, and the questions people usually ask.
       </p>
 
       {/* Always-visible scoring table. */}

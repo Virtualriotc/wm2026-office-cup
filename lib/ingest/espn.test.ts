@@ -141,6 +141,10 @@ describe("normalizeTeamName — alias map", () => {
     expect(normalizeTeamName("Türkiye")).toBe(normalizeTeamName("Turkey"));
     expect(normalizeTeamName("Curaçao")).toBe(normalizeTeamName("Curacao"));
   });
+
+  it("aligns ESPN 'Congo DR' with schedule 'DR Congo' (verified vs live ESPN)", () => {
+    expect(normalizeTeamName("Congo DR")).toBe(normalizeTeamName("DR Congo"));
+  });
 });
 
 describe("matchEspnToSeed — maps real ESPN events to seeded matches", () => {

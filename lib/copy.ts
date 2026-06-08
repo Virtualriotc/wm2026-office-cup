@@ -501,3 +501,30 @@ export function fill(
     key in values ? String(values[key]) : `{${key}}`,
   );
 }
+
+/**
+ * Predict-screen FAQ — the rules in one place, in cup voice. Standalone (not on
+ * CopyShape) so it stays a simple editable list. Rendered by PredictFaq.
+ */
+export const PREDICT_FAQ: ReadonlyArray<{ q: string; a: string }> = [
+  {
+    q: "How do points work?",
+    a: "Call a match right and you bank points — and the deeper the cup goes, the bigger the haul. Group stage: 1 pt. Round of 32: 2. Round of 16: 3. Quarter-final: 4. Semi-final: 5. Final: 6. Win, draw, or upset — a right call is a right call. Miss it, nada.",
+  },
+  {
+    q: "How do I pick?",
+    a: "One tap. Tap who you reckon wins (or Draw — group stage only). Change your mind as often as you like, right up until kickoff.",
+  },
+  {
+    q: "When do picks lock?",
+    a: "At kickoff, on the dot. The whistle goes, your pick is sealed and turns public. No edits after that — so call it with your chest.",
+  },
+  {
+    q: "How does my department win?",
+    a: "Every right call shoves your department further down the pitch. We score the average points per active player, so a small squad can still topple a big one. Knockouts are worth more, so it's never over.",
+  },
+  {
+    q: "I lost my code!",
+    a: "Oof. Your code is the only way back in, and there's no recovery — no email, no reset. Save it somewhere safe: a screenshot, your notes app, anywhere you'll actually find it.",
+  },
+];

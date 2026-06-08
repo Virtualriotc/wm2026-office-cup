@@ -259,6 +259,11 @@ const NAME_ALIASES: Record<string, string> = {
   // Bosnia
   "bosnia-and-herzegovina": "bosnia-herzegovina",
   "bosnia-herzegovina": "bosnia-herzegovina",
+  // DR Congo — VERIFIED 2026-06-08: ESPN serves "Congo DR", our schedule
+  // (openfootball) "DR Congo". Without this alias, Group K results for them
+  // would never auto-match. Both normalize to "dr-congo".
+  "congo-dr": "dr-congo",
+  "dr-congo": "dr-congo",
 };
 
 /**

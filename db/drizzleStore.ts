@@ -32,10 +32,12 @@ import type {
   LeaderboardRow,
   DepartmentStanding,
   Consensus,
+  Awards,
 } from "../lib/types";
 import {
   recomputeLeaderboards,
   computeConsensus,
+  computeAwards,
   resolveResult,
 } from "../lib/scoring";
 import type {
@@ -672,6 +674,24 @@ export class DrizzleStore implements DataStore {
       .from(schema.predictions)
       .where(eq(schema.predictions.matchId, matchId));
     return computeConsensus(matchId, rows.map(toPrediction));
+  }
+
+  async getAwards(): Promise<Awards> {
+    const [userRows, predRows, resultRows, matchRows, deptRows] =
+      await Promise.all([
+        this.db.select().from(schema.users),
+        this.db.select().from(schema.predictions),
+        this.db.select().from(schema.results),
+        this.db.select().from(schema.matches),
+        this.db.select().from(schema.departments),
+      ]);
+    return computeAwards({
+      users: userRows.map(toUser),
+      predictions: predRows.map(toPrediction),
+      results: resultRows.map(toResult),
+      matches: matchRows.map(toMatch),
+      departments: deptRows.map(toDepartment),
+    });
   }
 
   // -- sync heartbeat --------------------------------------------------------

@@ -31,8 +31,14 @@ import type {
   LeaderboardRow,
   DepartmentStanding,
   Consensus,
+  Awards,
 } from "./types";
-import { recomputeLeaderboards, computeConsensus, resolveResult } from "./scoring";
+import {
+  recomputeLeaderboards,
+  computeConsensus,
+  computeAwards,
+  resolveResult,
+} from "./scoring";
 import type { RecomputeOutput } from "./scoring";
 import {
   DEPARTMENTS,
@@ -101,6 +107,8 @@ export interface DataStore {
   getLeaderboard(): Promise<LeaderboardRow[]>;
   getDepartmentStandings(): Promise<DepartmentStanding[]>;
   getConsensus(matchId: string): Promise<Consensus>;
+  /** Fun scoreboard superlatives (mainstream / star / hot-streak). */
+  getAwards(): Promise<Awards>;
   /** Ingestion heartbeat: last sync time + note + feed-result count. */
   getSyncStatus(): Promise<SyncStatus>;
 
@@ -721,6 +729,16 @@ export class MockStore implements DataStore {
     return computeConsensus(matchId, this.predictions);
   }
 
+  async getAwards(): Promise<Awards> {
+    return computeAwards({
+      users: this.users,
+      predictions: this.predictions,
+      results: this.results,
+      matches: this.matches,
+      departments: this.departments,
+    });
+  }
+
   async getSyncStatus(): Promise<SyncStatus> {
     return {
       lastSyncAt: this.lastSyncAt,
@@ -818,6 +836,9 @@ class NeonStore implements DataStore {
   }
   async getConsensus(matchId: string): Promise<Consensus> {
     return (await this.resolve()).getConsensus(matchId);
+  }
+  async getAwards(): Promise<Awards> {
+    return (await this.resolve()).getAwards();
   }
   async getSyncStatus(): Promise<SyncStatus> {
     return (await this.resolve()).getSyncStatus();

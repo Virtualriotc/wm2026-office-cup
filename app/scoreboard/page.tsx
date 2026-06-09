@@ -7,13 +7,14 @@ import { buildRelativeView } from "@/components/scoreboard/relative";
 import { buildRaceModel } from "@/components/scoreboard/raceModel";
 import { DepartmentRace } from "@/components/scoreboard/DepartmentRace";
 import { Leaderboard } from "@/components/scoreboard/Leaderboard";
+import { Superlatives } from "@/components/scoreboard/Superlatives";
 import { Countdown } from "@/components/scoreboard/Countdown";
 import {
   computeFirstKickoff,
   isPreTournament,
   hasScoredResult,
 } from "@/components/scoreboard/scoreboardState";
-import type { Consensus, Department, Match } from "@/lib/types";
+import type { Awards, Consensus, Department, Match } from "@/lib/types";
 
 // The scoreboard reads live from the data store on every request. The mock
 // store reflects the wall clock, so locked/upcoming matches are real relative
@@ -46,13 +47,14 @@ async function resolveViewer() {
 
 export default async function ScoreboardPage() {
   const store = getStore();
-  const [leaderboard, standings, matches, results, departments, { user, isDemoViewer }] =
+  const [leaderboard, standings, matches, results, departments, awards, { user, isDemoViewer }] =
     await Promise.all([
       store.getLeaderboard(),
       store.getDepartmentStandings(),
       store.getMatches(),
       store.getResults(),
       store.getDepartments(),
+      store.getAwards(),
       resolveViewer(),
     ]);
 
@@ -62,7 +64,7 @@ export default async function ScoreboardPage() {
   const firstKickoff = computeFirstKickoff(matches);
   if (isPreTournament(firstKickoff, new Date()) && firstKickoff) {
     const firstMatch = matches.find((m) => m.kickoff === firstKickoff) ?? matches[0]!;
-    return <CountdownHero target={firstKickoff} firstMatch={firstMatch} departments={departments} />;
+    return <CountdownHero target={firstKickoff} firstMatch={firstMatch} departments={departments} awards={awards} />;
   }
 
   const view = buildRelativeView(leaderboard, departments, user?.id ?? null);
@@ -162,6 +164,9 @@ export default async function ScoreboardPage() {
         <Leaderboard view={view} standings={standings} youDeptId={user?.departmentId ?? null} />
       </Card>
 
+      {/* Fun superlatives — only the awards that have a winner show. */}
+      <Superlatives awards={awards} />
+
       {isDemoViewer ? (
         <p className="nb-pill self-center" style={{ fontSize: "0.68rem" }}>
           Demo view — showing the sample player &ldquo;{user?.displayName}&rdquo;. Join with a code to track your own.
@@ -181,10 +186,12 @@ function CountdownHero({
   target,
   firstMatch,
   departments,
+  awards,
 }: {
   target: string;
   firstMatch: Match;
   departments: Department[];
+  awards: Awards;
 }) {
   const fixtureDate = new Date(target).toLocaleDateString("en-GB", {
     day: "numeric",
@@ -263,6 +270,9 @@ function CountdownHero({
           </ul>
         </Card>
       ) : null}
+
+      {/* Pre-kickoff, only pick-based awards (e.g. Mainstream Picker) show. */}
+      <Superlatives awards={awards} />
     </div>
   );
 }

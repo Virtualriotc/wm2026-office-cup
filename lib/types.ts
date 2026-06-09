@@ -132,3 +132,27 @@ export interface Consensus {
   /** Total predictions counted. */
   n: number;
 }
+
+/** One winner of a fun "superlative" award on the scoreboard. */
+export interface AwardWinner {
+  displayName: string;
+  departmentName: string;
+  /** The headline stat, e.g. "82% with the crowd" or "12 pts" or "4 in a row". */
+  detail: string;
+  /** Anyone else tied at the exact same top value (co-winners). */
+  sharedWith: { displayName: string; departmentName: string }[];
+}
+
+/**
+ * Scoreboard superlatives. `mainstream` runs on picks alone (live pre-kickoff);
+ * `star` and `hotStreak` need played results, so they're null until the first
+ * matchday is scored (the UI hides null awards).
+ */
+export interface Awards {
+  /** Backs the office-favourite outcome most often. */
+  mainstream: AwardWinner | null;
+  /** Most points in the latest completed matchday. */
+  star: AwardWinner | null;
+  /** Longest current run of correct picks. */
+  hotStreak: AwardWinner | null;
+}

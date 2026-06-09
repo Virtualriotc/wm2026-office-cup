@@ -4,6 +4,7 @@ import { motion } from "motion/react";
 import type { Consensus, Match, Outcome, Result } from "@/lib/types";
 import { COPY, fill } from "@/lib/copy";
 import { Card, usePrefersReducedMotion } from "@/components/ui";
+import { Flag } from "@/components/Flag";
 import {
   isKnockout,
   pointsForStage,
@@ -33,11 +34,9 @@ export interface MatchCardProps {
 }
 
 /**
- * One fixture as a cream neo-brutalist card.
- *  - Open: tappable options (Group: Home/Draw/Away; Knockout: which of the two
- *    teams advances) + a live lock countdown + points-at-stake badge.
- *  - Locked/final: read-only, showing the user's pick and — when a result is
- *    in — the no-blame outcome line from COPY.
+ * One fixture as a compact cream neo-brutalist card. Team buttons carry the
+ * country flag (self-hosted SVG); under them the office consensus shows the real
+ * pick split as a bar PLUS the percentages, so the crowd signal is legible.
  */
 export function MatchCard({
   match,
@@ -54,16 +53,16 @@ export function MatchCard({
   const points = pointsForStage(match.stage);
 
   return (
-    <Card popIn delay={Math.min(index, 6) * 0.05} className="p-4 sm:p-5">
+    <Card popIn delay={Math.min(index, 6) * 0.04} className="p-3 sm:p-3.5">
       {/* header row: stage + group, points at stake, lock countdown */}
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+      <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <span className="nb-tag" style={{ background: "var(--color-royal)", color: "#fff" }}>
             {stageLabel(match.stage)}
             {match.group ? ` · ${match.group}` : ""}
           </span>
           <span
-            className="tnum text-[0.75rem] font-bold"
+            className="tnum text-[0.72rem] font-bold"
             style={{ color: "var(--color-muted)" }}
           >
             +{points} {points === 1 ? "pt" : "pts"}
@@ -84,7 +83,7 @@ export function MatchCard({
         />
       ) : previewOnly ? (
         <p
-          className="mt-3 text-[0.9rem] font-bold"
+          className="mt-2 text-[0.9rem] font-bold"
           style={{ color: "var(--color-royal)" }}
         >
           {COPY.predict.signInToPick}
@@ -116,24 +115,21 @@ function OpenOptions({
   selected?: Outcome;
   onSelect?: (matchId: string, pick: Outcome) => void;
 }) {
-  const options: { value: Outcome; label: string }[] = knockout
+  const options: { value: Outcome; label: string; team?: string }[] = knockout
     ? [
-        { value: "home", label: match.home },
-        { value: "away", label: match.away },
+        { value: "home", label: match.home, team: match.home },
+        { value: "away", label: match.away, team: match.away },
       ]
     : [
-        { value: "home", label: match.home },
+        { value: "home", label: match.home, team: match.home },
         { value: "draw", label: COPY.predict.drawLabel },
-        { value: "away", label: match.away },
+        { value: "away", label: match.away, team: match.away },
       ];
 
   const instruction = knockout ? "Tap who advances." : COPY.predict.instruction;
 
   return (
     <div role="radiogroup" aria-label={`${match.home} vs ${match.away} — ${instruction}`}>
-      <p className="mb-2 text-[0.8rem]" style={{ color: "var(--color-muted)" }}>
-        {selected ? null : instruction}
-      </p>
       <div
         className="grid gap-2"
         style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
@@ -142,7 +138,7 @@ function OpenOptions({
           <PickOption
             key={opt.value}
             label={opt.label}
-            isDraw={opt.value === "draw"}
+            team={opt.team}
             checked={selected === opt.value}
             onClick={() => onSelect?.(match.id, opt.value)}
           />
@@ -154,12 +150,12 @@ function OpenOptions({
 
 function PickOption({
   label,
-  isDraw,
+  team,
   checked,
   onClick,
 }: {
   label: string;
-  isDraw: boolean;
+  team?: string;
   checked: boolean;
   onClick: () => void;
 }) {
@@ -172,7 +168,7 @@ function PickOption({
       onClick={onClick}
       whileTap={reduce ? undefined : { scale: 0.96 }}
       transition={{ type: "spring", stiffness: 600, damping: 22 }}
-      className="flex min-h-[3.25rem] flex-col items-center justify-center gap-0.5 rounded-[12px] px-2 py-2.5 text-center transition-[transform,box-shadow] duration-100 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-[var(--color-royal)] focus-visible:outline-offset-2"
+      className="flex min-h-[2.75rem] items-center justify-center gap-1.5 rounded-[12px] px-2 py-2 text-center transition-[transform,box-shadow] duration-100 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-[var(--color-royal)] focus-visible:outline-offset-2"
       style={
         checked
           ? {
@@ -190,8 +186,8 @@ function PickOption({
             }
       }
     >
-      <span className="font-bold leading-tight">{label}</span>
-      {isDraw ? null : <span className="text-[0.65rem] opacity-70">to win</span>}
+      {team ? <Flag team={team} size={18} /> : null}
+      <span className="text-[0.92rem] font-bold leading-tight">{label}</span>
     </motion.button>
   );
 }
@@ -213,15 +209,15 @@ function LockedView({
   result?: Result;
   points: number;
 }) {
-  const teams: { value: Outcome; label: string }[] = knockout
+  const teams: { value: Outcome; label: string; team?: string }[] = knockout
     ? [
-        { value: "home", label: match.home },
-        { value: "away", label: match.away },
+        { value: "home", label: match.home, team: match.home },
+        { value: "away", label: match.away, team: match.away },
       ]
     : [
-        { value: "home", label: match.home },
+        { value: "home", label: match.home, team: match.home },
         { value: "draw", label: COPY.predict.drawLabel },
-        { value: "away", label: match.away },
+        { value: "away", label: match.away, team: match.away },
       ];
 
   const pickedLabel =
@@ -269,7 +265,7 @@ function LockedView({
           return (
             <div
               key={t.value}
-              className="flex min-h-[3.25rem] flex-col items-center justify-center gap-0.5 rounded-[12px] px-2 py-2.5 text-center"
+              className="flex min-h-[2.75rem] items-center justify-center gap-1.5 rounded-[12px] px-2 py-2 text-center"
               style={{
                 border: "var(--border-ink)",
                 boxShadow: isWinner || isPick ? "var(--shadow-hard-sm)" : "none",
@@ -281,10 +277,11 @@ function LockedView({
                 color: isWinner ? "#fff" : "var(--color-ink)",
               }}
             >
-              <span className="font-bold">{t.label}</span>
+              {t.team ? <Flag team={t.team} size={18} /> : null}
+              <span className="text-[0.92rem] font-bold">{t.label}</span>
               {isPick ? (
-                <span className="text-[0.6rem] font-bold uppercase tracking-wide">
-                  Your pick
+                <span className="text-[0.55rem] font-bold uppercase tracking-wide opacity-80">
+                  pick
                 </span>
               ) : null}
             </div>
@@ -294,7 +291,7 @@ function LockedView({
 
       {banner ? (
         <p
-          className="tnum mt-3 flex flex-wrap items-center gap-1 rounded-[12px] px-3 py-2 text-[0.9rem] font-bold"
+          className="tnum mt-2.5 flex flex-wrap items-center gap-1 rounded-[12px] px-3 py-2 text-[0.9rem] font-bold"
           style={{
             border: "var(--border-ink)",
             boxShadow: "var(--shadow-hard-sm)",
@@ -310,7 +307,7 @@ function LockedView({
           ) : null}
         </p>
       ) : (
-        <p className="mt-3 text-[0.8rem]" style={{ color: "var(--color-muted)" }}>
+        <p className="mt-2.5 text-[0.8rem]" style={{ color: "var(--color-muted)" }}>
           {selected !== undefined
             ? `Locked in: ${pickedLabel}. ${COPY.predict.postLockNote}`
             : `No pick — this one locked. ${COPY.predict.postLockNote}`}
@@ -322,6 +319,7 @@ function LockedView({
 
 // --------------------------------------------------------------------------
 // Office consensus (optional crowd signal — our own picks, never odds).
+// Shows the bar AND the percentages so the signal is actually legible.
 // --------------------------------------------------------------------------
 
 function ConsensusBar({
@@ -335,32 +333,46 @@ function ConsensusBar({
 }) {
   const segments = knockout
     ? [
-        { label: match.home, pct: consensus.pctHome, color: "var(--color-royal)" },
-        { label: match.away, pct: consensus.pctAway, color: "var(--color-green)" },
+        { label: match.home, team: match.home, pct: consensus.pctHome, color: "var(--color-royal)" },
+        { label: match.away, team: match.away, pct: consensus.pctAway, color: "var(--color-green)" },
       ]
     : [
-        { label: match.home, pct: consensus.pctHome, color: "var(--color-royal)" },
-        { label: COPY.predict.drawLabel, pct: consensus.pctDraw, color: "var(--color-muted)" },
-        { label: match.away, pct: consensus.pctAway, color: "var(--color-green)" },
+        { label: match.home, team: match.home, pct: consensus.pctHome, color: "var(--color-royal)" },
+        { label: COPY.predict.drawLabel, team: undefined, pct: consensus.pctDraw, color: "var(--color-muted)" },
+        { label: match.away, team: match.away, pct: consensus.pctAway, color: "var(--color-green)" },
       ];
 
   return (
-    <div className="mt-3">
+    <div className="mt-2.5">
       <p
-        className="mb-1 text-[0.7rem] font-bold uppercase tracking-wide"
+        className="mb-1 text-[0.68rem] font-bold uppercase tracking-wide"
         style={{ color: "var(--color-muted)" }}
       >
-        {COPY.predict.consensusLabel} · {consensus.n}
+        {COPY.predict.consensusLabel} · {consensus.n} {consensus.n === 1 ? "pick" : "picks"}
       </p>
-      <div className="flex h-3 w-full overflow-hidden rounded-full" style={{ border: "var(--border-ink)" }}>
+      <div className="flex h-2.5 w-full overflow-hidden rounded-full" style={{ border: "var(--border-ink)" }}>
         {segments.map((s, i) => (
           <span
             key={i}
             className="h-full"
             style={{ width: `${s.pct}%`, background: s.color }}
-            title={`${s.label}: ${s.pct}%`}
             aria-hidden="true"
           />
+        ))}
+      </div>
+      {/* legible legend: each outcome's share, with its bar colour */}
+      <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.72rem]">
+        {segments.map((s, i) => (
+          <span key={i} className="inline-flex items-center gap-1">
+            <span
+              className="inline-block h-2 w-2 rounded-full"
+              style={{ background: s.color, border: "1px solid var(--color-ink)" }}
+              aria-hidden="true"
+            />
+            {s.team ? <Flag team={s.team} size={14} /> : null}
+            <span className="font-semibold">{s.label}</span>
+            <span className="tnum font-extrabold">{s.pct}%</span>
+          </span>
         ))}
       </div>
     </div>

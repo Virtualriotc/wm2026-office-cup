@@ -72,6 +72,21 @@ export function PredictBoard({
     [openMatches, lockedNow],
   );
 
+  // The first matchday that still has an unpicked game — target of "jump to next".
+  const firstUnpickedDayKey = useMemo(() => {
+    for (const g of groups) {
+      if (g.matches.some((m) => picks[m.id] === undefined)) return g.dayKey;
+    }
+    return null;
+  }, [groups, picks]);
+
+  const jumpToNext = () => {
+    if (!firstUnpickedDayKey) return;
+    const el = document.getElementById(`md-${firstUnpickedDayKey}`);
+    if (el instanceof HTMLDetailsElement) el.open = true;
+    el?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   const handleSelect = (matchId: string, pick: Outcome) => {
     if (!signedIn) return;
     setPicks((prev) => ({ ...prev, [matchId]: pick }));
@@ -170,14 +185,29 @@ export function PredictBoard({
 
       {!signedIn ? <JoinPrompt /> : null}
 
-      {/* full predictable slate, grouped by matchday (soonest expanded) */}
+      {/* full predictable slate. Matchdays already fully picked start collapsed
+          so the user focuses on what's left; the rest open. A sticky strip up
+          top tracks progress and jumps to the next unpicked matchday. */}
       {stillOpen.length > 0 ? (
         <section className="flex flex-col gap-4" aria-label="Open matches">
+          {signedIn ? (
+            <ProgressStrip
+              pickedCount={pickedCount}
+              total={stillOpen.length}
+              hasUnpicked={firstUnpickedDayKey !== null}
+              onJump={jumpToNext}
+            />
+          ) : null}
           {groups.map((group, gi) => (
             <MatchdaySection
               key={group.dayKey}
+              domId={`md-${group.dayKey}`}
               group={group}
-              defaultOpen={gi === 0}
+              defaultOpen={
+                signedIn
+                  ? !group.matches.every((m) => existingPicks[m.id] !== undefined)
+                  : gi === 0
+              }
               signedIn={signedIn}
               picks={picks}
               consensus={consensus}
@@ -232,6 +262,7 @@ export function PredictBoard({
 // --------------------------------------------------------------------------
 
 function MatchdaySection({
+  domId,
   group,
   defaultOpen,
   signedIn,
@@ -240,6 +271,7 @@ function MatchdaySection({
   onSelect,
   onLock,
 }: {
+  domId: string;
   group: MatchdayGroup;
   defaultOpen: boolean;
   signedIn: boolean;
@@ -248,30 +280,46 @@ function MatchdaySection({
   onSelect: (matchId: string, pick: Outcome) => void;
   onLock: (matchId: string) => void;
 }) {
+  // Own the open/closed state so a user's manual collapse STICKS. A controlled
+  // `open={defaultOpen}` would fight them: every pick re-renders the board and
+  // would force the matchday back open. defaultOpen only seeds the initial state.
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+  const total = group.matches.length;
   const pickedHere = group.matches.filter(
     (m) => picks[m.id] !== undefined,
   ).length;
+  const allPicked = signedIn && pickedHere === total;
   const label =
     group.matchdayNo > 0
       ? fill(COPY.predict.matchdayHeader, {
           n: group.matchdayNo,
-          count: group.matches.length,
+          count: total,
         })
-      : `${group.matches.length} games`;
+      : `${total} games`;
 
   return (
-    <details open={defaultOpen} className="flex flex-col gap-3">
+    <details
+      id={domId}
+      open={isOpen}
+      onToggle={(e) => setIsOpen(e.currentTarget.open)}
+      className="flex flex-col gap-3 scroll-mt-20"
+    >
       <summary
         className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-[12px] px-3 py-2 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-[var(--color-royal)] focus-visible:outline-offset-2"
         style={{
           border: "var(--border-ink)",
-          background: "var(--color-yellow)",
+          background: allPicked ? "var(--color-green)" : "var(--color-yellow)",
+          color: allPicked ? "#fff" : "var(--color-ink)",
           boxShadow: "var(--shadow-hard-sm)",
         }}
       >
-        <span className="display text-[1.15rem]">{label}</span>
-        <span className="tnum text-[0.8rem] font-bold" style={{ color: "var(--color-ink)" }}>
-          {signedIn ? `${pickedHere}/${group.matches.length} picked` : `${group.matches.length}`}
+        <span className="display text-[1.1rem]">{label}</span>
+        <span className="tnum text-[0.8rem] font-bold">
+          {!signedIn
+            ? `${total}`
+            : allPicked
+              ? "✓ all picked"
+              : `${pickedHere}/${total} picked`}
         </span>
       </summary>
       <div className="mt-3 flex flex-col gap-3">
@@ -294,6 +342,66 @@ function MatchdaySection({
 }
 
 // --------------------------------------------------------------------------
+// Sticky progress strip: overall picked count + a jump to the next matchday
+// that still has an unpicked game. Sits at the top so the user always knows
+// what's left without scrolling.
+// --------------------------------------------------------------------------
+
+function ProgressStrip({
+  pickedCount,
+  total,
+  hasUnpicked,
+  onJump,
+}: {
+  pickedCount: number;
+  total: number;
+  hasUnpicked: boolean;
+  onJump: () => void;
+}) {
+  const pct = total > 0 ? Math.round((pickedCount / total) * 100) : 0;
+  return (
+    <div className="sticky top-2 z-20">
+      <div
+        className="flex flex-wrap items-center justify-between gap-3 rounded-[14px] px-3 py-2"
+        style={{
+          border: "var(--border-ink)",
+          background: "var(--color-cream)",
+          boxShadow: "var(--shadow-hard-sm)",
+        }}
+      >
+        <div className="flex min-w-0 flex-1 items-center gap-2.5">
+          <span className="tnum whitespace-nowrap text-[0.85rem] font-extrabold">
+            {pickedCount}/{total} picked
+          </span>
+          <span
+            className="h-2 min-w-[3rem] flex-1 overflow-hidden rounded-full"
+            style={{ border: "1.5px solid var(--color-ink)", background: "var(--color-haze)" }}
+            aria-hidden="true"
+          >
+            <span
+              className="block h-full"
+              style={{ width: `${pct}%`, background: "var(--color-green)" }}
+            />
+          </span>
+        </div>
+        {hasUnpicked ? (
+          <button
+            type="button"
+            onClick={onJump}
+            className="whitespace-nowrap rounded-full px-3 py-1 text-[0.78rem] font-extrabold focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-[var(--color-royal)] focus-visible:outline-offset-2"
+            style={{ border: "var(--border-ink)", background: "var(--color-yellow)" }}
+          >
+            Next unpicked →
+          </button>
+        ) : (
+          <span className="text-[0.78rem] font-extrabold" style={{ color: "var(--color-green)" }}>
+            All done ✓
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function SaveBar({
   pickedCount,

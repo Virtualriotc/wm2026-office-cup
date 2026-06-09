@@ -12,10 +12,13 @@ import type {
   User,
   Prediction,
   Result,
+  Match,
   LeaderboardRow,
   DepartmentStanding,
   Consensus,
   Department,
+  Awards,
+  AwardWinner,
 } from "./types";
 
 /**
@@ -244,4 +247,172 @@ export function computeConsensus(
     pctAway: pcts[2]!,
     n,
   };
+}
+
+// ============================================================================
+// Scoreboard superlatives ("awards"). Pure + deterministic for a given input.
+// ============================================================================
+
+export interface AwardsInput {
+  users: User[];
+  predictions: Prediction[];
+  results: Result[];
+  matches: Match[];
+  departments: Department[];
+}
+
+/** Minimum picks before someone qualifies for the Mainstream Picker award. */
+const MAINSTREAM_MIN_PICKS = 5;
+/** Minimum run length to be honoured as a Hot Streak. */
+const HOT_STREAK_MIN = 2;
+
+export function computeAwards(input: AwardsInput): Awards {
+  const { users, predictions, results, matches, departments } = input;
+
+  const deptName = new Map(departments.map((d) => [d.id, d.name]));
+  const userName = new Map(users.map((u) => [u.id, u.displayName]));
+  const userDept = new Map(
+    users.map((u) => [u.id, deptName.get(u.departmentId) ?? u.departmentId]),
+  );
+  const matchById = new Map(matches.map((m) => [m.id, m]));
+  const resultBy = new Map(results.map((r) => [r.matchId, r.outcome]));
+
+  // Build an award from the set of users tied at the top value. Sorting the ids
+  // makes the primary + co-winner order DETERMINISTIC regardless of input order,
+  // so a tie shows the same names on every page load.
+  const named = (id: string) => ({
+    displayName: userName.get(id) ?? "—",
+    departmentName: userDept.get(id) ?? "—",
+  });
+  const mkAward = (userIds: string[], detail: string): AwardWinner | null => {
+    if (userIds.length === 0) return null;
+    const [first, ...rest] = [...userIds].sort();
+    return { ...named(first!), detail, sharedWith: rest.map(named) };
+  };
+
+  const byUser = new Map<string, Prediction[]>();
+  for (const p of predictions) {
+    const arr = byUser.get(p.userId);
+    if (arr) arr.push(p);
+    else byUser.set(p.userId, [p]);
+  }
+
+  // ---- Mainstream Picker: backs the office-majority outcome most often ----
+  const counts = new Map<string, Record<Outcome, number>>();
+  for (const p of predictions) {
+    let c = counts.get(p.matchId);
+    if (!c) {
+      c = { home: 0, draw: 0, away: 0 };
+      counts.set(p.matchId, c);
+    }
+    c[p.pick] += 1;
+  }
+  const majority = new Map<string, Outcome>();
+  for (const [matchId, c] of counts) {
+    const ranked: [Outcome, number][] = [
+      ["home", c.home],
+      ["draw", c.draw],
+      ["away", c.away],
+    ];
+    ranked.sort((a, b) => b[1] - a[1]);
+    if (ranked[0]![1] > ranked[1]![1]) majority.set(matchId, ranked[0]![0]);
+  }
+  // Qualify on TOTAL picks (so a couple of tied matches can't push someone below
+  // the bar); rate is the share of their majority-decided picks that matched.
+  const rates: { userId: string; rate: number }[] = [];
+  for (const [userId, preds] of byUser) {
+    if (preds.length < MAINSTREAM_MIN_PICKS) continue;
+    let considered = 0;
+    let matched = 0;
+    for (const p of preds) {
+      const maj = majority.get(p.matchId);
+      if (maj === undefined) continue;
+      considered += 1;
+      if (p.pick === maj) matched += 1;
+    }
+    if (considered === 0) continue;
+    rates.push({ userId, rate: matched / considered });
+  }
+  let mainstream: AwardWinner | null = null;
+  if (rates.length > 0) {
+    const max = Math.max(...rates.map((r) => r.rate));
+    const winners = rates
+      .filter((r) => Math.abs(r.rate - max) < 1e-9)
+      .map((r) => r.userId);
+    mainstream = mkAward(winners, `${Math.round(max * 100)}% with the crowd`);
+  }
+
+  // ---- Star of the Matchday: most points in the latest completed matchday ----
+  const dayOf = (m: Match) => m.kickoff.slice(0, 10);
+  const allDays = [...new Set(matches.map(dayOf))].sort();
+  const dayNumber = new Map(allDays.map((d, i) => [d, i + 1]));
+  const completedDays = [
+    ...new Set(matches.filter((m) => resultBy.has(m.id)).map(dayOf)),
+  ].sort();
+  let star: AwardWinner | null = null;
+  if (completedDays.length > 0) {
+    const latestDay = completedDays[completedDays.length - 1]!;
+    const dayMatchIds = new Set(
+      matches
+        .filter((m) => dayOf(m) === latestDay && resultBy.has(m.id))
+        .map((m) => m.id),
+    );
+    const pts = new Map<string, number>();
+    for (const p of predictions) {
+      if (!dayMatchIds.has(p.matchId)) continue;
+      const outcome = resultBy.get(p.matchId);
+      const stage = matchById.get(p.matchId)?.stage;
+      if (outcome === undefined || stage === undefined) continue;
+      if (p.pick === outcome) {
+        pts.set(p.userId, (pts.get(p.userId) ?? 0) + STAGE_POINTS[stage]);
+      }
+    }
+    if (pts.size > 0) {
+      const max = Math.max(...pts.values());
+      if (max > 0) {
+        const winners = [...pts.entries()]
+          .filter(([, t]) => t === max)
+          .map(([u]) => u);
+        const md = dayNumber.get(latestDay);
+        star = mkAward(
+          winners,
+          `${max} pt${max === 1 ? "" : "s"}${md ? ` · Matchday ${md}` : ""}`,
+        );
+      }
+    }
+  }
+
+  // ---- Hot Streak: longest run of consecutive correct picks anywhere on their
+  // card (chronological by kickoff). A later miss doesn't erase a past run. ----
+  const streaks: { userId: string; len: number }[] = [];
+  for (const [userId, preds] of byUser) {
+    const completed = preds
+      .filter((p) => resultBy.has(p.matchId) && matchById.has(p.matchId))
+      .sort((a, b) =>
+        matchById
+          .get(a.matchId)!
+          .kickoff.localeCompare(matchById.get(b.matchId)!.kickoff),
+      );
+    let run = 0;
+    let longest = 0;
+    for (const p of completed) {
+      if (p.pick === resultBy.get(p.matchId)) {
+        run += 1;
+        if (run > longest) longest = run;
+      } else {
+        run = 0;
+      }
+    }
+    if (longest > 0) streaks.push({ userId, len: longest });
+  }
+  let hotStreak: AwardWinner | null = null;
+  if (streaks.length > 0) {
+    const max = Math.max(...streaks.map((s) => s.len));
+    if (max >= HOT_STREAK_MIN) {
+      const winners = streaks.filter((s) => s.len === max).map((s) => s.userId);
+      hotStreak = mkAward(winners, `${max} in a row`);
+    }
+  }
+
+  return { mainstream, star, hotStreak };
 }

@@ -5,6 +5,7 @@ import {
   PredictBoard,
   type LockedEntry,
 } from "@/components/predict/PredictBoard";
+import { TopPlayers } from "@/components/predict/TopPlayers";
 
 // Always render against the live clock + store: lock state is time-sensitive.
 export const dynamic = "force-dynamic";
@@ -23,11 +24,14 @@ export default async function PredictPage() {
   const store = getStore();
   const user = await getCurrentUser();
 
-  const [allMatches, openMatches, results] = await Promise.all([
-    store.getMatches(),
-    store.getPredictableMatches(),
-    store.getResults(),
-  ]);
+  const [allMatches, openMatches, results, leaderboard, departments] =
+    await Promise.all([
+      store.getMatches(),
+      store.getPredictableMatches(),
+      store.getResults(),
+      store.getLeaderboard(),
+      store.getDepartments(),
+    ]);
 
   const resultByMatch = new Map<string, Result>(
     results.map((r) => [r.matchId, r]),
@@ -71,13 +75,20 @@ export default async function PredictPage() {
   });
 
   return (
-    <PredictBoard
-      signedIn={user !== null}
-      openMatches={openMatches}
-      allMatches={allMatches}
-      existingPicks={existingPicks}
-      lockedEntries={lockedEntries}
-      consensus={consensus}
-    />
+    <div className="flex flex-col gap-6">
+      <TopPlayers
+        rows={leaderboard}
+        departments={departments}
+        viewerId={user?.id ?? null}
+      />
+      <PredictBoard
+        signedIn={user !== null}
+        openMatches={openMatches}
+        allMatches={allMatches}
+        existingPicks={existingPicks}
+        lockedEntries={lockedEntries}
+        consensus={consensus}
+      />
+    </div>
   );
 }

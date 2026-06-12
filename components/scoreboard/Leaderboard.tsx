@@ -299,13 +299,20 @@ export function Leaderboard({
   view,
   standings,
   youDeptId,
+  personalOnly = false,
 }: {
   view: RelativeView;
   standings: DepartmentStanding[];
   youDeptId: string | null;
+  /** Render only the personal "you" standing (no tabs) — used on Predict. */
+  personalOnly?: boolean;
 }) {
   const reduce = useReducedMotion() ?? false;
   const [tab, setTab] = useState<Tab>("you");
+
+  // Predict shows just your personal standing; the department race lives on the
+  // scoreboard, so no tabs / no department list here.
+  if (personalOnly) return <YouTab view={view} />;
 
   const tabBtn = (key: Tab, label: string) => {
     const active = tab === key;

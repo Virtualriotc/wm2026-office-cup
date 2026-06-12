@@ -12,10 +12,10 @@ const ITEMS: {
   tint: string;
 }[] = [
   {
-    key: "star",
-    icon: "⭐",
-    title: "Star of the Matchday",
-    blurb: "Most points in the latest round of games.",
+    key: "againstOdds",
+    icon: "🎲",
+    title: "Against the Odds",
+    blurb: "Backs the office underdog most often.",
     tint: "var(--color-yellow)",
   },
   {

@@ -69,49 +69,17 @@ function toLane(s: DepartmentStanding, youDeptId: string | null): RaceLane {
   };
 }
 
-// Minimum fraction gap we try to guarantee between two adjacent ranks, so a
-// lane that passes the one above it ALWAYS crosses by a visible margin instead
-// of twitching when their points are nearly equal. Scaled down for large
-// fields so the floor still fits inside the 0.08..1 track.
-const MAX_RANK_SEP = 0.16;
-function rankSep(laneCount: number): number {
-  if (laneCount <= 1) return 0;
-  // distribute the usable 0.08..1 band across the ranks, capped at MAX_RANK_SEP
-  return Math.min(MAX_RANK_SEP, 0.92 / (laneCount - 1));
-}
-
 /**
- * Token fraction (0..1) for a lane given its rank within `order` and the
- * points spread. Blends the points-share with an inverse-rank term so that:
- *  - when points differ, position tracks points (the leader is furthest);
- *  - when points are equal/zero, position still spreads by rank so the race
- *    reads as a legible ladder instead of a flat pile.
- *
- * The points weight is deliberately modest (and capped by a rank floor below)
- * so a close-points overtake reads as a real PASS: the leader's token is held
- * at least one rank-step ahead of #2 regardless of how tight the points are.
- * Leader sits near the finish; last sits near the start, never at 0.
+ * Token fraction (0..1) for a lane: PROPORTIONAL to its average points, so the
+ * bars read honestly — equal scores sit at equal positions, and the gap between
+ * two lanes matches the real gap in their averages. (The old version blended in
+ * an inverse-rank term, which spread tied scores far apart — confusing next to
+ * identical labels.) Before any points exist (maxAvg 0) the lanes sit level; a
+ * small floor keeps a zero-point lane visible.
  */
-function fractionFor(
-  avg: number,
-  maxAvg: number,
-  orderIndex: number,
-  laneCount: number,
-): number {
-  const pointsShare = maxAvg > 0 ? avg / maxAvg : 0;
-  // inverse rank: index 0 (leader) => 1, last => small but > 0
-  const rankShare = laneCount > 1 ? 1 - orderIndex / laneCount : 1;
-  // Lean more on rank than before (0.7 -> 0.45) so ordering produces a
-  // readable gap even when points are bunched; pure rank when all on 0.
-  const w = maxAvg > 0 ? 0.45 : 0;
-  const blended = w * pointsShare + (1 - w) * rankShare;
-  // Hard ceiling per rank: each lane sits at least one rank-step behind the
-  // finish for every rank below the leader. Because the ceiling strictly
-  // decreases with rank, the passing pair always has a visible gap to cross
-  // through, so a close-points overtake never collapses into a twitch.
-  const rankCeiling = 1 - orderIndex * rankSep(laneCount);
-  const withCeiling = Math.min(blended, rankCeiling);
-  return Math.max(0.08, Math.min(1, withCeiling));
+function fractionFor(avg: number, maxAvg: number): number {
+  if (maxAvg <= 0) return 0.5;
+  return Math.max(0.06, Math.min(1, avg / maxAvg));
 }
 
 /**
@@ -129,8 +97,8 @@ export function buildRaceModel(
   const maxAvg = Math.max(0, ...after.map((l) => l.avgPoints));
 
   const afterFrac: Record<string, number> = {};
-  after.forEach((lane, i) => {
-    afterFrac[lane.departmentId] = fractionFor(lane.avgPoints, maxAvg, i, laneCount);
+  after.forEach((lane) => {
+    afterFrac[lane.departmentId] = fractionFor(lane.avgPoints, maxAvg);
   });
 
   const hasRealMoves = after.some((l) => l.climbDelta !== 0);
@@ -144,8 +112,8 @@ export function buildRaceModel(
     before = [...after].sort(
       (a, b) => a.rank + a.climbDelta - (b.rank + b.climbDelta),
     );
-    before.forEach((lane, i) => {
-      beforeFrac[lane.departmentId] = fractionFor(lane.avgPoints, maxAvg, i, laneCount);
+    before.forEach((lane) => {
+      beforeFrac[lane.departmentId] = fractionFor(lane.avgPoints, maxAvg);
     });
   } else if (laneCount >= 2) {
     // DEMO: stage a single overtake between the top two lanes. The #2 lane
@@ -153,13 +121,13 @@ export function buildRaceModel(
     isDemo = true;
     before = [...after];
     [before[0], before[1]] = [before[1]!, before[0]!];
-    before.forEach((lane, i) => {
-      beforeFrac[lane.departmentId] = fractionFor(lane.avgPoints, maxAvg, i, laneCount);
+    before.forEach((lane) => {
+      beforeFrac[lane.departmentId] = fractionFor(lane.avgPoints, maxAvg);
     });
   } else {
     before = [...after];
-    after.forEach((lane, i) => {
-      beforeFrac[lane.departmentId] = fractionFor(lane.avgPoints, maxAvg, i, laneCount);
+    after.forEach((lane) => {
+      beforeFrac[lane.departmentId] = fractionFor(lane.avgPoints, maxAvg);
     });
   }
 

@@ -3,10 +3,9 @@ import { getStore, isMockStore } from "@/lib/data";
 import { getCurrentUser } from "@/lib/auth";
 import { COPY, fill } from "@/lib/copy";
 import { Button, Card, Tag } from "@/components/ui";
-import { buildRelativeView } from "@/components/scoreboard/relative";
 import { buildRaceModel } from "@/components/scoreboard/raceModel";
 import { DepartmentRace } from "@/components/scoreboard/DepartmentRace";
-import { Leaderboard } from "@/components/scoreboard/Leaderboard";
+import { TopPlayers } from "@/components/predict/TopPlayers";
 import { Superlatives } from "@/components/scoreboard/Superlatives";
 import { Countdown } from "@/components/scoreboard/Countdown";
 import {
@@ -67,7 +66,6 @@ export default async function ScoreboardPage() {
     return <CountdownHero target={firstKickoff} firstMatch={firstMatch} departments={departments} awards={awards} />;
   }
 
-  const view = buildRelativeView(leaderboard, departments, user?.id ?? null);
   const raceModel = buildRaceModel(standings, user?.departmentId ?? null);
   // Gate the mover/streak badge on a real scored result: never on a pre-launch
   // or all-zero board, even if the model synthesizes a demo overtake.
@@ -153,16 +151,15 @@ export default async function ScoreboardPage() {
         </Card>
       ) : null}
 
-      {/* Leaderboard (tabs: You / Departments) */}
-      <Card popIn delay={0.06} className="p-5 sm:p-6">
-        <h2 className="display mb-1 text-[1.4rem]">Where you stand</h2>
-        <p className="mb-4 text-[0.85rem]" style={{ color: "var(--color-muted)" }}>
-          {view.hasViewer
-            ? "Your spot, who's in reach, and the leaders to chase."
-            : "The leaders to chase. Join with a code to see your own climb."}
-        </p>
-        <Leaderboard view={view} standings={standings} youDeptId={user?.departmentId ?? null} />
-      </Card>
+      {/* Top players (the individual leaders). The personal "where you stand"
+          lives on Predict, so it isn't duplicated here. */}
+      <TopPlayers
+        rows={leaderboard}
+        departments={departments}
+        viewerId={user?.id ?? null}
+        linkHref="/predict"
+        linkLabel="Where you stand →"
+      />
 
       {/* Fun superlatives — only the awards that have a winner show. */}
       <Superlatives awards={awards} />

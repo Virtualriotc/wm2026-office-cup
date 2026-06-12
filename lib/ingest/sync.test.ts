@@ -258,6 +258,12 @@ describe("runSync — automated ingestion (ESPN primary)", () => {
 
   it("no-ops with nothing due (clean store) and still stamps the heartbeat", async () => {
     // A clean store with the REAL future schedule (nothing past) — no fetch needed.
+    // Pin the clock to BEFORE the tournament so nothing is due (runSync reads
+    // Date.now() for the due-cutoff); otherwise this goes non-deterministic once
+    // real matches have kicked off.
+    vi.spyOn(Date, "now").mockReturnValue(
+      new Date("2026-06-01T00:00:00.000Z").getTime(),
+    );
     const clean = new MockStore({ seedDemo: false });
     await clean.seedFromOpenfootball();
     installStore(clean);

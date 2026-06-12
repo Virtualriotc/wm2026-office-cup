@@ -14,10 +14,14 @@ export function TopPlayers({
   rows,
   departments,
   viewerId,
+  linkHref = "/scoreboard",
+  linkLabel = "See full board →",
 }: {
   rows: LeaderboardRow[];
   departments: Department[];
   viewerId: string | null;
+  linkHref?: string;
+  linkLabel?: string;
 }) {
   if (rows.length === 0) return null;
   const deptName = new Map(departments.map((d) => [d.id, d.name]));
@@ -57,11 +61,11 @@ export function TopPlayers({
       <div className="mb-2 flex items-center justify-between gap-2">
         <h2 className="display text-[1.15rem]">Top players</h2>
         <Link
-          href="/scoreboard"
+          href={linkHref}
           className="text-[0.78rem] font-extrabold no-underline"
           style={{ color: "var(--color-royal)" }}
         >
-          See full board →
+          {linkLabel}
         </Link>
       </div>
 

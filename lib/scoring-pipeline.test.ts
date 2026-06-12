@@ -1,7 +1,7 @@
 // ============================================================================
 // SCORING PIPELINE — end-to-end proof, run on BOTH stores (MockStore AND the
 // real DrizzleStore on Postgres-in-WASM). Simulates a finished matchday:
-//   pick  ->  setResult  ->  getLeaderboard (points)  ->  getAwards (Star + Hot
+//   pick  ->  setResult  ->  getLeaderboard (points)  ->  getAwards (Hot
 //   Streak)
 // This is the chain that fires for the first time when real results land on
 // 11 Jun. Proving it here means it won't first run untested in production.
@@ -39,7 +39,7 @@ async function makeDrizzle(): Promise<DataStore> {
 
 function runPipeline(label: string, make: () => Promise<DataStore>) {
   describe(`scoring pipeline — ${label}`, () => {
-    it("a scored matchday awards points + fires Star + Hot Streak end-to-end", async () => {
+    it("a scored matchday awards points + fires Hot Streak end-to-end", async () => {
       const store = await make();
       const depts = await store.getDepartments();
       const deptA = depts[0]!.id;
@@ -76,11 +76,10 @@ function runPipeline(label: string, make: () => Promise<DataStore>) {
         { matchId: m3!.id, pick: "draw" },
       ]);
 
-      // BEFORE results: all-zero board, no result-based awards (the launch state).
+      // BEFORE results: all-zero board, no result-based award (hot streak null).
       let board = await store.getLeaderboard();
       expect(board.every((r) => r.points === 0)).toBe(true);
       let awards = await store.getAwards();
-      expect(awards.star).toBeNull();
       expect(awards.hotStreak).toBeNull();
 
       // THE EVENT: the matchday is played — results come in.
@@ -96,10 +95,8 @@ function runPipeline(label: string, make: () => Promise<DataStore>) {
       expect(pts["Alice"]).toBe(0);
       expect(board[0]!.displayName).toBe("Carol"); // Carol now tops the board
 
-      // Awards populate from the scored matchday.
+      // The result-based award (Hot Streak) populates from the scored matchday.
       awards = await store.getAwards();
-      expect(awards.star?.displayName).toBe("Carol");
-      expect(awards.star?.detail).toMatch(/^3 pts/);
       expect(awards.hotStreak?.displayName).toBe("Carol");
       expect(awards.hotStreak?.detail).toBe("3 in a row");
     });

@@ -84,23 +84,27 @@ describe("computeAwards", () => {
     expect(a.mainstream!.detail).toBe("100% with the crowd");
   });
 
-  it("Star + Hot Streak are NULL before any match is scored", () => {
+  it("Against the Odds = the mirror of Mainstream (lowest crowd rate)", () => {
     const a = computeAwards({ users, predictions, results: [], matches, departments });
-    expect(a.star).toBeNull();
-    expect(a.hotStreak).toBeNull();
+    // Alice goes against the favourite most (matched the crowd just 1/6).
+    expect(a.againstOdds).not.toBeNull();
+    expect(a.againstOdds!.displayName).toBe("Alice");
+    expect(a.againstOdds!.detail).toBe("83% against the grain");
   });
 
-  it("RESULTS SIMULATION: scoring the latest matchday activates Star + Hot Streak", () => {
+  it("Hot Streak is NULL before any match is scored (pick-based awards still show)", () => {
+    const a = computeAwards({ users, predictions, results: [], matches, departments });
+    expect(a.hotStreak).toBeNull();
+    expect(a.mainstream).not.toBeNull(); // pick-based -> live immediately
+    expect(a.againstOdds).not.toBeNull();
+  });
+
+  it("RESULTS SIMULATION: scoring the latest matchday activates Hot Streak", () => {
     // Day 2 (m4,m5,m6) played: m4 home, m5 home, m6 away.
     const results = [result("m4", "home"), result("m5", "home"), result("m6", "away")];
     const a = computeAwards({ users, predictions, results, matches, departments });
 
-    // Points on Matchday 2: Alice 0, Bob 2 (m4,m5), Carol 3 (m4,m5,m6).
-    expect(a.star).not.toBeNull();
-    expect(a.star!.displayName).toBe("Carol");
-    expect(a.star!.detail).toBe("3 pts · Matchday 2");
-
-    // Carol got all three Day-2 results right -> current streak 3.
+    // Carol got all three Day-2 results right -> a run of 3.
     expect(a.hotStreak).not.toBeNull();
     expect(a.hotStreak!.displayName).toBe("Carol");
     expect(a.hotStreak!.detail).toBe("3 in a row");
@@ -125,7 +129,7 @@ describe("computeAwards", () => {
   it("empty users / predictions → all awards null", () => {
     const a = computeAwards({ users: [], predictions: [], results: [], matches: [], departments: [] });
     expect(a.mainstream).toBeNull();
-    expect(a.star).toBeNull();
+    expect(a.againstOdds).toBeNull();
     expect(a.hotStreak).toBeNull();
   });
 
@@ -133,7 +137,7 @@ describe("computeAwards", () => {
   it("user exists but has 0 predictions → no awards for them", () => {
     const a = computeAwards({ users, predictions: [], results: [], matches, departments });
     expect(a.mainstream).toBeNull();
-    expect(a.star).toBeNull();
+    expect(a.againstOdds).toBeNull();
     expect(a.hotStreak).toBeNull();
   });
 

@@ -15,7 +15,7 @@
 // now >= match.kickoff — is enforced HERE, server-side, regardless of caller.
 // ============================================================================
 
-import { eq, inArray, count } from "drizzle-orm";
+import { eq, inArray, count, sql } from "drizzle-orm";
 import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 import type { ExtractTablesWithRelations } from "drizzle-orm";
 
@@ -622,36 +622,64 @@ export class DrizzleStore implements DataStore {
       previous,
     });
 
-    // Rebuild only the requested derived table idempotently (DELETE + INSERT).
+    // Rebuild the requested derived table with an UPSERT (insert-or-update per
+    // PK), NOT delete-then-insert: two page loads recompute concurrently, and a
+    // non-atomic DELETE+INSERT raced into a primary-key conflict (the second
+    // insert hit the first's freshly-inserted rows), crashing the page. Upsert
+    // is race-safe; rows for deleted users/departments are removed by the PK's
+    // ON DELETE CASCADE, so no stale rows accumulate without the DELETE.
     const computedAt = this.now();
     if (dimension === "user") {
-      await this.db.delete(schema.leaderboardUser);
       if (leaderboard.length > 0) {
-        await this.db.insert(schema.leaderboardUser).values(
-          leaderboard.map((r) => ({
-            userId: r.userId,
-            points: r.points,
-            rank: r.rank,
-            percentile: r.percentile,
-            climbDelta: r.climbDelta,
-            computedAt,
-          })),
-        );
+        await this.db
+          .insert(schema.leaderboardUser)
+          .values(
+            leaderboard.map((r) => ({
+              userId: r.userId,
+              points: r.points,
+              rank: r.rank,
+              percentile: r.percentile,
+              climbDelta: r.climbDelta,
+              computedAt,
+            })),
+          )
+          .onConflictDoUpdate({
+            target: schema.leaderboardUser.userId,
+            set: {
+              points: sql`excluded.points`,
+              rank: sql`excluded.rank`,
+              percentile: sql`excluded.percentile`,
+              climbDelta: sql`excluded.climb_delta`,
+              computedAt: sql`excluded.computed_at`,
+            },
+          });
       }
     } else {
-      await this.db.delete(schema.leaderboardDepartment);
       if (departments.length > 0) {
-        await this.db.insert(schema.leaderboardDepartment).values(
-          departments.map((d) => ({
-            departmentId: d.departmentId,
-            avgPoints: d.avgPoints,
-            memberCount: d.activeMembers,
-            rank: d.rank,
-            climbDelta: d.climbDelta,
-            eligible: d.eligible,
-            computedAt,
-          })),
-        );
+        await this.db
+          .insert(schema.leaderboardDepartment)
+          .values(
+            departments.map((d) => ({
+              departmentId: d.departmentId,
+              avgPoints: d.avgPoints,
+              memberCount: d.activeMembers,
+              rank: d.rank,
+              climbDelta: d.climbDelta,
+              eligible: d.eligible,
+              computedAt,
+            })),
+          )
+          .onConflictDoUpdate({
+            target: schema.leaderboardDepartment.departmentId,
+            set: {
+              avgPoints: sql`excluded.avg_points`,
+              memberCount: sql`excluded.member_count`,
+              rank: sql`excluded.rank`,
+              climbDelta: sql`excluded.climb_delta`,
+              eligible: sql`excluded.eligible`,
+              computedAt: sql`excluded.computed_at`,
+            },
+          });
       }
     }
 

@@ -1,11 +1,14 @@
+import Link from "next/link";
 import type { Consensus, Outcome, Result } from "@/lib/types";
 import { getStore } from "@/lib/data";
 import { getCurrentUser } from "@/lib/auth";
+import { Card } from "@/components/ui";
 import {
   PredictBoard,
   type LockedEntry,
 } from "@/components/predict/PredictBoard";
-import { TopPlayers } from "@/components/predict/TopPlayers";
+import { buildRelativeView } from "@/components/scoreboard/relative";
+import { Leaderboard } from "@/components/scoreboard/Leaderboard";
 
 // Always render against the live clock + store: lock state is time-sensitive.
 export const dynamic = "force-dynamic";
@@ -74,13 +77,30 @@ export default async function PredictPage() {
     consensus[m.id] = consensusList[i]!;
   });
 
+  // Your personal standing (rank, who's in reach, leaders). The department race
+  // + top-5 list live on the scoreboard, so this is the only individual board.
+  const view = buildRelativeView(leaderboard, departments, user?.id ?? null);
+
   return (
     <div className="flex flex-col gap-6">
-      <TopPlayers
-        rows={leaderboard}
-        departments={departments}
-        viewerId={user?.id ?? null}
-      />
+      <Card className="p-4 sm:p-5">
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <h2 className="display text-[1.15rem]">Where you stand</h2>
+          <Link
+            href="/scoreboard"
+            className="text-[0.78rem] font-extrabold no-underline"
+            style={{ color: "var(--color-royal)" }}
+          >
+            The race →
+          </Link>
+        </div>
+        <Leaderboard
+          view={view}
+          standings={[]}
+          youDeptId={user?.departmentId ?? null}
+          personalOnly
+        />
+      </Card>
       <PredictBoard
         signedIn={user !== null}
         openMatches={openMatches}

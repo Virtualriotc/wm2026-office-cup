@@ -135,9 +135,17 @@ function Lane({
         />
       </div>
 
-      {/* points */}
-      <span className="tnum w-11 shrink-0 text-right text-[0.95rem] font-extrabold">
-        {lane.avgPoints.toFixed(1)}
+      {/* avg points + active-member count */}
+      <span className="w-14 shrink-0 text-right">
+        <span className="tnum block text-[0.95rem] font-extrabold leading-tight">
+          {lane.avgPoints.toFixed(1)}
+        </span>
+        <span
+          className="block text-[0.6rem] leading-tight"
+          style={{ color: "var(--color-muted)" }}
+        >
+          {lane.activeMembers} active
+        </span>
       </span>
     </motion.li>
   );

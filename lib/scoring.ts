@@ -187,9 +187,13 @@ export function recomputeLeaderboards(input: RecomputeInput): RecomputeOutput {
   });
 
   // Rank: eligible-and-higher-average first; ineligible sink to the bottom.
+  // On a TRUE average tie, the more-active department ranks higher (rewards
+  // turnout), then name for a stable final order.
   const sortedDepts = [...deptRows].sort((a, b) => {
     if (a.eligible !== b.eligible) return a.eligible ? -1 : 1;
     if (b.avgPoints !== a.avgPoints) return b.avgPoints - a.avgPoints;
+    if (b.activeMembers !== a.activeMembers)
+      return b.activeMembers - a.activeMembers;
     return a.department.name.localeCompare(b.department.name);
   });
 
@@ -342,44 +346,16 @@ export function computeAwards(input: AwardsInput): Awards {
     mainstream = mkAward(winners, `${Math.round(max * 100)}% with the crowd`);
   }
 
-  // ---- Star of the Matchday: most points in the latest completed matchday ----
-  const dayOf = (m: Match) => m.kickoff.slice(0, 10);
-  const allDays = [...new Set(matches.map(dayOf))].sort();
-  const dayNumber = new Map(allDays.map((d, i) => [d, i + 1]));
-  const completedDays = [
-    ...new Set(matches.filter((m) => resultBy.has(m.id)).map(dayOf)),
-  ].sort();
-  let star: AwardWinner | null = null;
-  if (completedDays.length > 0) {
-    const latestDay = completedDays[completedDays.length - 1]!;
-    const dayMatchIds = new Set(
-      matches
-        .filter((m) => dayOf(m) === latestDay && resultBy.has(m.id))
-        .map((m) => m.id),
-    );
-    const pts = new Map<string, number>();
-    for (const p of predictions) {
-      if (!dayMatchIds.has(p.matchId)) continue;
-      const outcome = resultBy.get(p.matchId);
-      const stage = matchById.get(p.matchId)?.stage;
-      if (outcome === undefined || stage === undefined) continue;
-      if (p.pick === outcome) {
-        pts.set(p.userId, (pts.get(p.userId) ?? 0) + STAGE_POINTS[stage]);
-      }
-    }
-    if (pts.size > 0) {
-      const max = Math.max(...pts.values());
-      if (max > 0) {
-        const winners = [...pts.entries()]
-          .filter(([, t]) => t === max)
-          .map(([u]) => u);
-        const md = dayNumber.get(latestDay);
-        star = mkAward(
-          winners,
-          `${max} pt${max === 1 ? "" : "s"}${md ? ` · Matchday ${md}` : ""}`,
-        );
-      }
-    }
+  // ---- Against the Odds: backs the office UNDERDOG most — the mirror of
+  // Mainstream (lowest crowd rate). A rate, not a saturating point count, so
+  // there's a clear single winner, never a 20-way tie at "1 pt". ----
+  let againstOdds: AwardWinner | null = null;
+  if (rates.length > 0) {
+    const min = Math.min(...rates.map((r) => r.rate));
+    const winners = rates
+      .filter((r) => Math.abs(r.rate - min) < 1e-9)
+      .map((r) => r.userId);
+    againstOdds = mkAward(winners, `${Math.round((1 - min) * 100)}% against the grain`);
   }
 
   // ---- Hot Streak: longest run of consecutive correct picks anywhere on their
@@ -414,5 +390,5 @@ export function computeAwards(input: AwardsInput): Awards {
     }
   }
 
-  return { mainstream, star, hotStreak };
+  return { mainstream, againstOdds, hotStreak };
 }

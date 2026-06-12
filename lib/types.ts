@@ -151,8 +151,8 @@ export interface AwardWinner {
 export interface Awards {
   /** Backs the office-favourite outcome most often. */
   mainstream: AwardWinner | null;
-  /** Most points in the latest completed matchday. */
-  star: AwardWinner | null;
-  /** Longest current run of correct picks. */
+  /** Backs the office UNDERDOG most often (lowest % with the crowd). */
+  againstOdds: AwardWinner | null;
+  /** Longest run of correct picks. */
   hotStreak: AwardWinner | null;
 }

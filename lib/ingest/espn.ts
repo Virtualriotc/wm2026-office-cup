@@ -207,6 +207,28 @@ export async function fetchEspnResultsForDate(
   }
 }
 
+/**
+ * The ESPN `dates=YYYYMMDD` buckets to query for a match at `kickoffIso`.
+ *
+ * ESPN files games by US-EASTERN calendar day, NOT UTC. A 03:00 UTC kickoff is
+ * ~23:00 ET the night before, so ESPN serves it under the PREVIOUS day's bucket.
+ * Querying only the match's own UTC day therefore silently misses every late/
+ * early-UTC kickoff (this stranded real Group results for days). We return the
+ * UTC day plus BOTH neighbours so the event is in one of the buckets regardless
+ * of the offset. This is safe: the matcher still pins the exact game by
+ * (UTC-day == UTC-day) AND team-name, so an unrelated neighbour-day event can
+ * never be mis-assigned — extra buckets only ever ADD the chance of a find.
+ */
+export function espnDateBuckets(kickoffIso: string): string[] {
+  const ms = new Date(kickoffIso).getTime();
+  return [-1, 0, 1].map((offsetDays) =>
+    new Date(ms + offsetDays * 86_400_000)
+      .toISOString()
+      .slice(0, 10)
+      .replace(/-/g, ""),
+  );
+}
+
 // ===========================================================================
 // MATCHER — map an ESPN event to one of OUR seeded matches.
 //

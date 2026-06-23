@@ -36,6 +36,7 @@ import {
 } from "./openfootball";
 import {
   fetchEspnResultsForDate,
+  espnDateBuckets,
   matchEspnResults,
   matchEspnKoTeams,
   resolveKoTeamsByStructure,
@@ -84,10 +85,11 @@ async function resolveKnockoutTeams(
   );
   if (unresolved.length === 0) return [];
 
-  // The distinct UTC days those slots sit on — one ESPN call per day.
+  // The distinct UTC days those slots sit on, plus neighbours — ESPN buckets by
+  // US-Eastern day, so an early/late-UTC kickoff can sit under an adjacent call.
   const days = new Set<string>();
   for (const m of unresolved) {
-    days.add(new Date(m.kickoff).toISOString().slice(0, 10).replace(/-/g, ""));
+    for (const day of espnDateBuckets(m.kickoff)) days.add(day);
   }
 
   // --- PRIMARY: ESPN, by season.slug round + structural day/order matcher. ---
@@ -227,9 +229,11 @@ export async function runSync(matchday?: string): Promise<SyncResult> {
   // --- 1. PRIMARY: ESPN (free, no key). One scoreboard call per due match-day. ---
   // Collect the distinct UTC days the due matches kick off on, then ask ESPN
   // once per day and resolve events to our match ids via the name+day matcher.
+  // Query each due match's UTC day AND its neighbours — ESPN buckets by US-
+  // Eastern day, so a 03:00-UTC kickoff lives under the PREVIOUS day's call.
   const dueDays = new Set<string>();
   for (const m of due) {
-    dueDays.add(new Date(m.kickoff).toISOString().slice(0, 10).replace(/-/g, ""));
+    for (const day of espnDateBuckets(m.kickoff)) dueDays.add(day);
   }
   let espnFailed = false;
   for (const day of dueDays) {

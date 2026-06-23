@@ -163,7 +163,7 @@ export interface CopyShape {
     header: string;
     sectionEyebrow: string;
     roundNote: string; // "Matchday {n} is in"
-    biggestMover: string; // "{dept} jumped {n} — mover of the week"
+    biggestMover: string; // "{dept} climbed {n} since yesterday"
     topTipsterTitle: string;
     yourRankLabel: string;
     yourRankValue: string; // "#{rank} · up {delta}"
@@ -380,7 +380,7 @@ const en: CopyShape = {
     header: "The race",
     sectionEyebrow: "Department standings",
     roundNote: "Matchday {n} is in",
-    biggestMover: "{dept} jumped {n} spots — mover of the week",
+    biggestMover: "{dept} climbed {n} since yesterday",
     topTipsterTitle: "This week's sharpest",
     yourRankLabel: "Your rank",
     yourRankValue: "#{rank} · up {delta}",

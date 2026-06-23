@@ -394,5 +394,38 @@ export function runStoreContract(label: string, make: MakeContractStore): void {
       expect(after.lastSyncAt).not.toBeNull();
       expect(after.lastSyncNote).toBe("contract sync pass");
     });
+
+    it("records a daily department snapshot and reads the prior day's ranks", async () => {
+      // The fixed clock is 2026-07-01, so a snapshot stamped 2026-06-30 is the
+      // "prior day" relative to today. Record current standings under it.
+      const standings = await store.getDepartmentStandings();
+      const eligible = standings.filter((s) => s.eligible);
+      expect(eligible.length).toBeGreaterThan(0); // sanity: someone is ranked
+      await store.recordDepartmentSnapshot(standings, "2026-06-30");
+
+      const prevRanks = await store.getPreviousDayDeptRanks();
+      // Every eligible department's rank round-trips; ineligible ones are absent.
+      for (const s of eligible) {
+        expect(prevRanks[s.departmentId]).toBe(s.rank);
+      }
+      for (const s of standings.filter((s) => !s.eligible)) {
+        expect(prevRanks[s.departmentId]).toBeUndefined();
+      }
+    });
+
+    it("ignores a same-day snapshot and upserts the prior day idempotently", async () => {
+      const standings = await store.getDepartmentStandings();
+      // A snapshot stamped TODAY (2026-07-01) must NOT count as the prior day…
+      await store.recordDepartmentSnapshot(standings, "2026-07-01");
+      const ranks = await store.getPreviousDayDeptRanks();
+      // …so the prior-day read still resolves to the 2026-06-30 snapshot above.
+      expect(Object.keys(ranks).length).toBeGreaterThan(0);
+
+      // And the upsert is idempotent: re-recording the prior day overwrites,
+      // never duplicates (a duplicate PK would throw here).
+      await store.recordDepartmentSnapshot(standings, "2026-06-30");
+      const again = await store.getPreviousDayDeptRanks();
+      expect(again).toEqual(ranks);
+    });
   });
 }

@@ -15,7 +15,7 @@
 // now >= match.kickoff — is enforced HERE, server-side, regardless of caller.
 // ============================================================================
 
-import { eq, inArray, count, sql } from "drizzle-orm";
+import { eq, inArray, count, sql, lt, desc } from "drizzle-orm";
 import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 import type { ExtractTablesWithRelations } from "drizzle-orm";
 
@@ -694,6 +694,68 @@ export class DrizzleStore implements DataStore {
   async getDepartmentStandings(): Promise<DepartmentStanding[]> {
     const { departments } = await this.recomputeAndPersist("department");
     return departments;
+  }
+
+  async recordDepartmentSnapshot(
+    standings: DepartmentStanding[],
+    day?: string,
+  ): Promise<void> {
+    if (standings.length === 0) return;
+    const snapDay = day ?? this.now().toISOString().slice(0, 10);
+    await this.db
+      .insert(schema.departmentRankSnapshot)
+      .values(
+        standings.map((d) => ({
+          day: snapDay,
+          departmentId: d.departmentId,
+          rank: d.eligible ? d.rank : null,
+          avgPoints: d.avgPoints,
+          activeMembers: d.activeMembers,
+          eligible: d.eligible,
+        })),
+      )
+      .onConflictDoUpdate({
+        target: [
+          schema.departmentRankSnapshot.day,
+          schema.departmentRankSnapshot.departmentId,
+        ],
+        set: {
+          rank: sql`excluded.rank`,
+          avgPoints: sql`excluded.avg_points`,
+          activeMembers: sql`excluded.active_members`,
+          eligible: sql`excluded.eligible`,
+        },
+      });
+  }
+
+  async getPreviousDayDeptRanks(): Promise<Record<string, number>> {
+    try {
+      const today = this.now().toISOString().slice(0, 10);
+      // The most recent snapshot day strictly before today.
+      const prior = await this.db
+        .select({ day: schema.departmentRankSnapshot.day })
+        .from(schema.departmentRankSnapshot)
+        .where(lt(schema.departmentRankSnapshot.day, today))
+        .orderBy(desc(schema.departmentRankSnapshot.day))
+        .limit(1);
+      if (prior.length === 0) return {};
+      const rows = await this.db
+        .select({
+          departmentId: schema.departmentRankSnapshot.departmentId,
+          rank: schema.departmentRankSnapshot.rank,
+        })
+        .from(schema.departmentRankSnapshot)
+        .where(eq(schema.departmentRankSnapshot.day, prior[0]!.day));
+      const out: Record<string, number> = {};
+      for (const r of rows) if (r.rank !== null) out[r.departmentId] = r.rank;
+      return out;
+    } catch {
+      // The snapshot table may not exist yet (code can deploy a beat before the
+      // additive migration is applied), or a transient read error. Never let the
+      // Mover lookup crash the scoreboard — no prior day just means no mover,
+      // which the UI already handles.
+      return {};
+    }
   }
 
   async getConsensus(matchId: string): Promise<Consensus> {

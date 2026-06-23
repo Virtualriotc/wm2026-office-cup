@@ -317,6 +317,16 @@ export async function runSync(matchday?: string): Promise<SyncResult> {
     /* warm-up only; never fail the sync over it */
   }
 
+  // Stamp today's department-rank snapshot (idempotent upsert per UTC day), so
+  // the scoreboard's day-over-day "Mover" has a frozen "yesterday" to compare
+  // against. Best-effort: a snapshot hiccup must never fail the sync.
+  try {
+    const standings = await store.getDepartmentStandings();
+    await store.recordDepartmentSnapshot(standings);
+  } catch {
+    /* snapshot is best-effort; the Mover simply has no new data this run */
+  }
+
   const pending = due.length - ingested;
   const note =
     ingested > 0

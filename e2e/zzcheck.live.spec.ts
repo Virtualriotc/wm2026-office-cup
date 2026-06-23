@@ -257,7 +257,7 @@ test.describe("LIVE ZZCHECK — functional + persistence (Neon)", () => {
     await expect(page.getByRole("heading", { name: /^The race$/ })).toBeVisible();
 
     const race = page.getByRole("list", { name: /Department race standings/i });
-    const moverCount = await page.getByText(/mover of the week/i).count();
+    const moverCount = await page.getByText(/climbed.*since yesterday/i).count();
     let scoreboardState: string;
     if (await race.count()) {
       const tnums = await race.locator(".tnum").allTextContents();

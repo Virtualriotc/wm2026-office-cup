@@ -3,7 +3,7 @@ import { getStore, isMockStore } from "@/lib/data";
 import { getCurrentUser } from "@/lib/auth";
 import { COPY, fill } from "@/lib/copy";
 import { Button, Card, Tag } from "@/components/ui";
-import { buildRaceModel } from "@/components/scoreboard/raceModel";
+import { buildRaceModel, withDayOverDayDelta } from "@/components/scoreboard/raceModel";
 import { DepartmentRace } from "@/components/scoreboard/DepartmentRace";
 import { TopPlayers } from "@/components/predict/TopPlayers";
 import { Superlatives } from "@/components/scoreboard/Superlatives";
@@ -46,7 +46,7 @@ async function resolveViewer() {
 
 export default async function ScoreboardPage() {
   const store = getStore();
-  const [leaderboard, standings, matches, results, departments, awards, { user, isDemoViewer }] =
+  const [leaderboard, standings, matches, results, departments, awards, previousDayRanks, { user, isDemoViewer }] =
     await Promise.all([
       store.getLeaderboard(),
       store.getDepartmentStandings(),
@@ -54,6 +54,7 @@ export default async function ScoreboardPage() {
       store.getResults(),
       store.getDepartments(),
       store.getAwards(),
+      store.getPreviousDayDeptRanks(),
       resolveViewer(),
     ]);
 
@@ -66,9 +67,20 @@ export default async function ScoreboardPage() {
     return <CountdownHero target={firstKickoff} firstMatch={firstMatch} departments={departments} awards={awards} />;
   }
 
-  const raceModel = buildRaceModel(standings, user?.departmentId ?? null);
-  // Gate the mover/streak badge on a real scored result: never on a pre-launch
-  // or all-zero board, even if the model synthesizes a demo overtake.
+  // Reframe each lane's climb as a DAY-OVER-DAY change (today's rank vs the
+  // prior day's snapshot), so the race overtake + "Mover" badge mean "since
+  // yesterday" rather than "since the last sync".
+  const dayStandings = withDayOverDayDelta(standings, previousDayRanks);
+  // allowDemo ONLY in the mock/demo deployment — in production a no-movement day
+  // must not fake a swap or a "climbed 1 since yesterday" mover.
+  const raceModel = buildRaceModel(
+    dayStandings,
+    user?.departmentId ?? null,
+    isMockStore(),
+  );
+  // Gate the mover badge on a real scored result. In production allowDemo is
+  // false, so isDemo can't be true here and the mover is always a real climb;
+  // in the demo deployment the synthesized mover is intentional.
   const showMover = hasScoredResult(results, standings);
 
   // Office consensus for the next open match — shown subtly, NOT as odds.

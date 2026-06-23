@@ -12,6 +12,7 @@ import {
   integer,
   real,
   boolean,
+  date,
   timestamp,
   pgEnum,
   uniqueIndex,
@@ -169,6 +170,29 @@ export const leaderboardDepartment = pgTable("leaderboard_department", {
     .notNull()
     .defaultNow(),
 });
+
+// --- daily department rank snapshot (one row per department per UTC day) ---
+// Powers the day-over-day "Mover" on the scoreboard: today's rank vs the most
+// recent PRIOR day's snapshot. Written once per daily sync (idempotent upsert
+// per (day, department)); never written on a read. Additive — nothing else
+// depends on it, so it is safe to create on the live DB without touching any
+// existing table.
+export const departmentRankSnapshot = pgTable(
+  "department_rank_snapshot",
+  {
+    day: date("day").notNull(), // UTC calendar day, "YYYY-MM-DD"
+    departmentId: text("department_id")
+      .notNull()
+      .references(() => departments.id, { onDelete: "cascade" }),
+    rank: integer("rank"), // null when the department was ineligible that day
+    avgPoints: real("avg_points").notNull().default(0),
+    activeMembers: integer("active_members").notNull().default(0),
+    eligible: boolean("eligible").notNull().default(false),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.day, t.departmentId] }),
+  }),
+);
 
 // --- derived: office consensus per match ---
 export const officeConsensus = pgTable(

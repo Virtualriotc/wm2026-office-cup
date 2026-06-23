@@ -106,6 +106,20 @@ export interface DataStore {
   getResults(): Promise<Result[]>;
   getLeaderboard(): Promise<LeaderboardRow[]>;
   getDepartmentStandings(): Promise<DepartmentStanding[]>;
+  /**
+   * Persist a daily department rank snapshot (idempotent upsert per
+   * (day, department)). `day` defaults to the store's current UTC day; pass an
+   * explicit "YYYY-MM-DD" for backfill. Powers the day-over-day Mover. Write-only.
+   */
+  recordDepartmentSnapshot(
+    standings: DepartmentStanding[],
+    day?: string,
+  ): Promise<void>;
+  /**
+   * Ranks from the most recent snapshot day strictly BEFORE today (UTC), keyed
+   * by departmentId. Empty when there is no prior-day snapshot. Read-only.
+   */
+  getPreviousDayDeptRanks(): Promise<Record<string, number>>;
   getConsensus(matchId: string): Promise<Consensus>;
   /** Fun scoreboard superlatives (mainstream / star / hot-streak). */
   getAwards(): Promise<Awards>;
@@ -235,6 +249,8 @@ export class MockStore implements DataStore {
   /** Frozen "previous" department ranks so climb-delta is non-zero in the demo. */
   private previousDeptRanks: Record<string, number> = {};
   private previousUserRanks: Record<string, number> = {};
+  /** Daily department rank snapshots: day ("YYYY-MM-DD") -> { deptId: rank|null }. */
+  private deptSnapshots = new Map<string, Record<string, number | null>>();
   private seeded = false;
 
   constructor(options: MockStoreOptions = {}) {
@@ -725,6 +741,31 @@ export class MockStore implements DataStore {
     return departments;
   }
 
+  async recordDepartmentSnapshot(
+    standings: DepartmentStanding[],
+    day?: string,
+  ): Promise<void> {
+    if (standings.length === 0) return; // parity with DrizzleStore: write nothing
+    const key = day ?? this.now().toISOString().slice(0, 10);
+    const ranks: Record<string, number | null> = {};
+    for (const s of standings) ranks[s.departmentId] = s.eligible ? s.rank : null;
+    this.deptSnapshots.set(key, ranks);
+  }
+
+  async getPreviousDayDeptRanks(): Promise<Record<string, number>> {
+    const today = this.now().toISOString().slice(0, 10);
+    const priorDays = [...this.deptSnapshots.keys()]
+      .filter((d) => d < today)
+      .sort();
+    const latest = priorDays[priorDays.length - 1];
+    if (latest === undefined) return {};
+    const out: Record<string, number> = {};
+    for (const [deptId, rank] of Object.entries(this.deptSnapshots.get(latest)!)) {
+      if (rank !== null) out[deptId] = rank;
+    }
+    return out;
+  }
+
   async getConsensus(matchId: string): Promise<Consensus> {
     return computeConsensus(matchId, this.predictions);
   }
@@ -833,6 +874,15 @@ class NeonStore implements DataStore {
   }
   async getDepartmentStandings(): Promise<DepartmentStanding[]> {
     return (await this.resolve()).getDepartmentStandings();
+  }
+  async recordDepartmentSnapshot(
+    standings: DepartmentStanding[],
+    day?: string,
+  ): Promise<void> {
+    return (await this.resolve()).recordDepartmentSnapshot(standings, day);
+  }
+  async getPreviousDayDeptRanks(): Promise<Record<string, number>> {
+    return (await this.resolve()).getPreviousDayDeptRanks();
   }
   async getConsensus(matchId: string): Promise<Consensus> {
     return (await this.resolve()).getConsensus(matchId);

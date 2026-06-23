@@ -8,6 +8,7 @@ import { Flag } from "@/components/Flag";
 import {
   isKnockout,
   pointsForStage,
+  roundStyle,
   stageLabel,
 } from "./predict-helpers";
 import { LockCountdown } from "./LockCountdown";
@@ -51,28 +52,58 @@ export function MatchCard({
 }: MatchCardProps) {
   const knockout = isKnockout(match.stage);
   const points = pointsForStage(match.stage);
+  const round = roundStyle(match);
 
   return (
-    <Card popIn delay={Math.min(index, 6) * 0.04} className="p-3 sm:p-3.5">
-      {/* header row: stage + group, points at stake, lock countdown */}
-      <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <span className="nb-tag" style={{ background: "var(--color-royal)", color: "#fff" }}>
-            {stageLabel(match.stage)}
-            {match.group ? ` · ${match.group}` : ""}
-          </span>
+    <Card
+      popIn
+      delay={Math.min(index, 6) * 0.04}
+      className={`p-3 sm:p-3.5${round ? " overflow-hidden" : ""}${round?.gold ? " nb-card--gold" : ""}`}
+    >
+      {round ? (
+        /* knockout: full-width colour ribbon — round name + points + countdown.
+           The accent colour never stands alone; the round NAME rides with it. */
+        <div
+          className="-mx-3 -mt-3 mb-2.5 flex flex-wrap items-center justify-between gap-2 px-3 py-2 sm:-mx-3.5 sm:-mt-3.5 sm:px-3.5"
+          style={{ background: round.bg, color: round.fg, borderBottom: "var(--border-ink)" }}
+        >
           <span
-            className="tnum text-[0.72rem] font-bold"
-            style={{ color: "var(--color-muted)" }}
+            className="text-[0.95rem] font-extrabold leading-none"
+            style={{ fontFamily: "var(--font-display)" }}
           >
-            +{points} {points === 1 ? "pt" : "pts"}
+            {round.label}
           </span>
+          <div className="flex items-center gap-2">
+            <span className="nb-tag" style={{ background: "#fff", color: "var(--color-ink)" }}>
+              +{points} {points === 1 ? "pt" : "pts"}
+            </span>
+            <LockCountdown
+              kickoff={match.kickoff}
+              onLock={onLock ? () => onLock(match.id) : undefined}
+            />
+          </div>
         </div>
-        <LockCountdown
-          kickoff={match.kickoff}
-          onLock={onLock ? () => onLock(match.id) : undefined}
-        />
-      </div>
+      ) : (
+        /* group stage — unchanged: royal stage tag, points, countdown */
+        <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="nb-tag" style={{ background: "var(--color-royal)", color: "#fff" }}>
+              {stageLabel(match.stage)}
+              {match.group ? ` · ${match.group}` : ""}
+            </span>
+            <span
+              className="tnum text-[0.72rem] font-bold"
+              style={{ color: "var(--color-muted)" }}
+            >
+              +{points} {points === 1 ? "pt" : "pts"}
+            </span>
+          </div>
+          <LockCountdown
+            kickoff={match.kickoff}
+            onLock={onLock ? () => onLock(match.id) : undefined}
+          />
+        </div>
+      )}
 
       {open ? (
         <OpenOptions

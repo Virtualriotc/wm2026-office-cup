@@ -12,7 +12,7 @@ export default defineConfig({
     // server-action tests (account rate-limit + login round-trip). Both are
     // plain Node tests. The Playwright e2e specs live in e2e/ and are NOT
     // matched here (they import @playwright/test and only run under Playwright).
-    include: ["lib/**/*.test.ts", "app/**/*.test.ts"],
+    include: ["lib/**/*.test.ts", "app/**/*.test.ts", "components/**/*.test.ts"],
     environment: "node",
   },
   resolve: {

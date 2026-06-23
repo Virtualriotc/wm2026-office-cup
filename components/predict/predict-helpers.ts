@@ -31,6 +31,51 @@ export function stageLabel(stage: Stage): string {
 }
 
 /**
+ * True when an 'sf'-tier match is actually the third-place play-off, not a
+ * semi-final. Both share the 'sf' stage (same points), so we tell them apart by
+ * the seeded fixture id ("…match-for-third-place…"). Used only for the label.
+ */
+export function isThirdPlace(match: Pick<Match, "id" | "stage">): boolean {
+  return match.stage === "sf" && /third-place/i.test(match.id);
+}
+
+/** The ribbon styling for a knockout card: round name + its accent colour.
+ *  Returns null for group-stage matches, which keep their existing royal tag. */
+export interface RoundStyle {
+  /** Round name shown on the ribbon, e.g. "Quarter-final" / "Third place". */
+  label: string;
+  /** Ribbon background (a CSS colour or gradient). */
+  bg: string;
+  /** Foreground colour that meets contrast on `bg`. */
+  fg: string;
+  /** The Final gets a gold drop-shadow on the whole card. */
+  gold: boolean;
+}
+
+const ROUND_ACCENT: Record<
+  Exclude<Stage, "group">,
+  { bg: string; fg: string }
+> = {
+  r32: { bg: "var(--color-royal)", fg: "#fff" },
+  r16: { bg: "var(--color-teal)", fg: "#fff" },
+  qf: { bg: "var(--color-violet)", fg: "#fff" },
+  sf: { bg: "var(--color-coral)", fg: "var(--color-ink)" },
+  final: {
+    bg: "linear-gradient(100deg, var(--color-gold), #ffe07a 55%, var(--color-gold))",
+    fg: "var(--color-ink)",
+  },
+};
+
+export function roundStyle(match: Pick<Match, "id" | "stage">): RoundStyle | null {
+  if (match.stage === "group") return null;
+  if (isThirdPlace(match)) {
+    return { label: "Third place", bg: "var(--color-bronze)", fg: "var(--color-ink)", gold: false };
+  }
+  const accent = ROUND_ACCENT[match.stage];
+  return { label: stageLabel(match.stage), bg: accent.bg, fg: accent.fg, gold: match.stage === "final" };
+}
+
+/**
  * Derive a stable, human "Matchday N" number for a given calendar day.
  *
  * The data model has no matchday column, so we number the DISTINCT match days

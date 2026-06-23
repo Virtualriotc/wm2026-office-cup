@@ -20,6 +20,7 @@ import {
   matchEspnResults,
   matchEspnKoTeams,
   normalizeTeamName,
+  espnDateBuckets,
   type EspnResult,
 } from "./espn";
 import { SEED_MATCHES } from "../seed";
@@ -246,5 +247,37 @@ describe("matchEspnResults — only completed + matched results", () => {
     expect(matched).toEqual([
       { matchId: "of-matchday-1-mexico-south-africa", outcome: "home" },
     ]);
+  });
+});
+
+// ===========================================================================
+// espnDateBuckets — ESPN buckets by US-Eastern day, so a 03:00-UTC kickoff is
+// served under the PREVIOUS day's `dates=` call. The sync must query neighbours
+// or it strands those results (this stranded real Group games for days).
+// ===========================================================================
+describe("espnDateBuckets — covers ESPN's US-Eastern day boundary", () => {
+  it("returns the UTC day plus BOTH neighbours, in YYYYMMDD", () => {
+    // A 03:00-UTC kickoff: ESPN files it under 06-22 (ET), our match's UTC day
+    // is 06-23. The bucket list must include 06-22 so the result is found.
+    expect(espnDateBuckets("2026-06-23T03:00:00.000Z")).toEqual([
+      "20260622",
+      "20260623",
+      "20260624",
+    ]);
+  });
+
+  it("crosses month boundaries correctly", () => {
+    expect(espnDateBuckets("2026-07-01T01:00:00.000Z")).toEqual([
+      "20260630",
+      "20260701",
+      "20260702",
+    ]);
+  });
+
+  it("always includes the match's own UTC day", () => {
+    for (const iso of ["2026-06-11T19:00:00Z", "2026-06-20T03:00:00Z", "2026-06-28T02:00:00Z"]) {
+      const own = iso.slice(0, 10).replace(/-/g, "");
+      expect(espnDateBuckets(iso)).toContain(own);
+    }
   });
 });

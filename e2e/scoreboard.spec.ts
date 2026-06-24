@@ -61,7 +61,7 @@ test.describe("Scoreboard", () => {
   }) => {
     await page.goto("/scoreboard");
     // The seed flips Energy Tech above Energy Ops -> a real mover-of-the-week.
-    await expect(page.getByText(/mover of the week/i)).toBeVisible();
+    await expect(page.getByText(/climbed.*since yesterday/i)).toBeVisible();
   });
 
   test("leaderboard is RELATIVE: percentile + neighbourhood, never '#N of M'", async ({

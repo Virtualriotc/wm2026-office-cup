@@ -253,7 +253,7 @@ test.describe("LIVE — functional + persistence (Neon)", () => {
       await expect(countdown.first()).toHaveAccessibleName(/until kickoff/i);
       await expect(page.getByText(/First up/i)).toBeVisible();
       await expect(race).toHaveCount(0);
-      await expect(page.getByText(/mover of the week/i)).toHaveCount(0);
+      await expect(page.getByText(/climbed.*since yesterday/i)).toHaveCount(0);
     } else {
       // IN/POST-TOURNAMENT: the race list renders. We don't assert specific points
       // here — a later matchday legitimately carries real scores — only that the

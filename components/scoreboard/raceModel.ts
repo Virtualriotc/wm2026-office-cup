@@ -49,6 +49,23 @@ export interface RaceModel {
   isDemo: boolean;
 }
 
+/**
+ * Recompute each standing's `climbDelta` as a DAY-OVER-DAY change: yesterday's
+ * rank (from the prior day's snapshot) minus today's rank. Positive = climbed.
+ * A department with no prior-day rank (new, or yesterday-ineligible) gets 0, so
+ * it never shows as a spurious mover. The race "before" order and the Mover
+ * badge then read as "since yesterday" with zero changes to buildRaceModel.
+ */
+export function withDayOverDayDelta(
+  standings: DepartmentStanding[],
+  previousDayRanks: Record<string, number>,
+): DepartmentStanding[] {
+  return standings.map((s) => {
+    const prev = previousDayRanks[s.departmentId];
+    return { ...s, climbDelta: prev !== undefined ? prev - s.rank : 0 };
+  });
+}
+
 function abbrOf(name: string): string {
   const cleaned = name.replace(/[^A-Za-z]/g, "");
   return (cleaned.slice(0, 2) || name.slice(0, 2)).toUpperCase();
@@ -85,10 +102,18 @@ function fractionFor(avg: number, maxAvg: number): number {
 /**
  * Build the animation model. `standings` are assumed pre-sorted by rank
  * (scoring.ts guarantees this). `youDeptId` marks the viewer's lane.
+ *
+ * `allowDemo` (default true) permits the cold-start DEMO fallback: when no lane
+ * has moved, synthesize one plausible overtake so the marketing/demo hero still
+ * animates. In PRODUCTION this must be false — otherwise a day with no real
+ * rank change would fake a swap AND a "{leader} climbed 1" mover, a false claim
+ * to real users. With it off, a no-movement day simply renders the current
+ * order with no mover.
  */
 export function buildRaceModel(
   standings: DepartmentStanding[],
   youDeptId: string | null,
+  allowDemo = true,
 ): RaceModel {
   // Only eligible departments get a lane (min-participants guard).
   const eligible = standings.filter((s) => s.eligible);
@@ -115,9 +140,9 @@ export function buildRaceModel(
     before.forEach((lane) => {
       beforeFrac[lane.departmentId] = fractionFor(lane.avgPoints, maxAvg);
     });
-  } else if (laneCount >= 2) {
+  } else if (allowDemo && laneCount >= 2) {
     // DEMO: stage a single overtake between the top two lanes. The #2 lane
-    // started ahead of #1 and gets passed.
+    // started ahead of #1 and gets passed. Never in production (allowDemo).
     isDemo = true;
     before = [...after];
     [before[0], before[1]] = [before[1]!, before[0]!];

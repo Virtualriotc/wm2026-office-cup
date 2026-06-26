@@ -412,11 +412,6 @@ export interface ResolvedKoTeams {
   away: string;
 }
 
-/** Stable (day, stage) key for the order-within-day matcher. */
-function dayStageKey(day: string, stage: Stage): string {
-  return `${day}#${stage}`;
-}
-
 /** A feed event normalized for the structural KO matcher (source-agnostic). */
 export interface KoFeedEvent {
   stage: Stage;
@@ -437,38 +432,38 @@ export function resolveKoTeamsByStructure(
   events: KoFeedEvent[],
   koMatches: Match[],
 ): ResolvedKoTeams[] {
-  // Index OUR placeholder KO slots by (day, stage), kickoff-sorted.
-  const seedByKey = new Map<string, Match[]>();
-  for (const m of koMatches) {
-    if (m.stage === "group") continue;
-    const key = dayStageKey(utcDay(m.kickoff), m.stage);
-    (seedByKey.get(key) ?? seedByKey.set(key, []).get(key)!).push(m);
-  }
-  for (const list of seedByKey.values()) {
-    list.sort((a, b) => a.kickoff.localeCompare(b.kickoff));
-  }
-
-  // Bucket feed events the same way: real-team KO events only, kickoff-sorted.
-  const feedByKey = new Map<string, KoFeedEvent[]>();
+  // Match each REAL-team feed event to the seeded slot with the SAME stage and
+  // the SAME kickoff (to the minute). Both our schedule and ESPN carry the
+  // published FIFA fixture times, so kickoff is a STABLE, UNIQUE key per KO slot.
+  //
+  // Why not index-within-day (the old approach)? As the bracket fills one slot
+  // at a time across days, a resolved slot leaves the "unresolved" list but its
+  // team-pair stays in the feed — so the i-th feed event no longer lines up with
+  // the i-th remaining slot, and an ALREADY-USED pair gets written onto the next
+  // still-empty slot. That produced duplicate fixtures (e.g. Brazil v Japan in
+  // two R32 slots). Keying on kickoff makes a pair resolvable to exactly one slot
+  // regardless of resolution order, so it can never duplicate.
+  const eventByKey = new Map<string, KoFeedEvent>();
   for (const e of events) {
     if (e.stage === "group") continue;
     if (isPlaceholderTeam(e.home) || isPlaceholderTeam(e.away)) continue;
-    const key = dayStageKey(utcDay(e.kickoff), e.stage);
-    (feedByKey.get(key) ?? feedByKey.set(key, []).get(key)!).push(e);
-  }
-  for (const list of feedByKey.values()) {
-    list.sort((a, b) => a.kickoff.localeCompare(b.kickoff));
+    const key = `${e.stage}|${koKickoffKey(e.kickoff)}`;
+    if (!eventByKey.has(key)) eventByKey.set(key, e);
   }
 
   const out: ResolvedKoTeams[] = [];
-  for (const [key, seeds] of seedByKey) {
-    const feed = feedByKey.get(key);
-    if (!feed) continue;
-    for (let i = 0; i < seeds.length && i < feed.length; i++) {
-      out.push({ matchId: seeds[i]!.id, home: feed[i]!.home, away: feed[i]!.away });
-    }
+  for (const m of koMatches) {
+    if (m.stage === "group") continue;
+    const e = eventByKey.get(`${m.stage}|${koKickoffKey(m.kickoff)}`);
+    if (e) out.push({ matchId: m.id, home: e.home, away: e.away });
   }
   return out;
+}
+
+/** Kickoff bucket key: UTC to the minute ("YYYY-MM-DDTHH:MM"). Both sources use
+ *  the published FIFA times, so this aligns exactly and is unique per KO slot. */
+function koKickoffKey(iso: string): string {
+  return new Date(iso).toISOString().slice(0, 16);
 }
 
 /**

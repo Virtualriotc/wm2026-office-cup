@@ -188,6 +188,59 @@ export function hasKnownTeams(match: Pick<Match, "home" | "away">): boolean {
   return !isPlaceholderTeam(match.home) && !isPlaceholderTeam(match.away);
 }
 
+/** True when two (home, away) labels name the SAME matchup, order-insensitive.
+ *  Used by the store's duplicate-fixture invariant. */
+export function sameMatchup(
+  h1: string,
+  a1: string,
+  h2: string,
+  a2: string,
+): boolean {
+  const n = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+  return [n(h1), n(a1)].sort().join("|") === [n(h2), n(a2)].sort().join("|");
+}
+
+// ---------------------------------------------------------------------------
+// Store-boundary invariants for setMatchTeams — the structural defence against
+// the two fixture-corruption classes the audit surfaced. Enforced identically in
+// BOTH stores so a feed/resolver bug can NEVER write bad fixture data:
+//   1. never write a placeholder/descriptor ("Group A Winner", "1E") as a team;
+//   2. never create a SECOND match with the same teams in the same stage.
+// Throwing is safe: the KO resolver in sync.ts wraps setMatchTeams in try/catch,
+// so a rejected write just skips that slot instead of corrupting the bracket.
+// ---------------------------------------------------------------------------
+export function assertWriteableTeams(
+  matchId: string,
+  home: string,
+  away: string,
+): void {
+  if (isPlaceholderTeam(home) || isPlaceholderTeam(away)) {
+    throw new Error(
+      `setMatchTeams(${matchId}): refusing to write placeholder team(s) "${home}" v "${away}"`,
+    );
+  }
+}
+
+export function assertNoDuplicateFixture(
+  matches: Pick<Match, "id" | "stage" | "home" | "away">[],
+  matchId: string,
+  stage: string,
+  home: string,
+  away: string,
+): void {
+  const clash = matches.find(
+    (m) =>
+      m.id !== matchId &&
+      m.stage === stage &&
+      sameMatchup(m.home, m.away, home, away),
+  );
+  if (clash) {
+    throw new Error(
+      `setMatchTeams(${matchId}): refusing duplicate ${stage} fixture "${home}" v "${away}" — already on ${clash.id}`,
+    );
+  }
+}
+
 /** Convert one raw openfootball match into our Match (status always scheduled). */
 export function toSeedMatch(raw: RawMatch): Match {
   const id = matchId(raw);

@@ -38,11 +38,18 @@ describe("server-side lock (store.savePredictions)", () => {
     const matches = await store.getMatches();
     const now = Date.now();
     const locked = matches.find((m) => new Date(m.kickoff).getTime() <= now);
-    const open = matches.find((m) => new Date(m.kickoff).getTime() > now);
+    // A future match savePredictions will ACCEPT. Once the group stage ends,
+    // EVERY future match is an unresolved knockout placeholder (which the store
+    // rightly rejects as unpredictable), so resolve a future KO slot to real
+    // teams here — keeping this test date-robust through the whole tournament.
+    const futureKo = matches.find(
+      (m) => new Date(m.kickoff).getTime() > now && m.stage !== "group",
+    );
     expect(locked, "seed must include at least one already-kicked-off match").toBeTruthy();
-    expect(open, "seed must include at least one future match").toBeTruthy();
+    expect(futureKo, "seed must include a future knockout slot").toBeTruthy();
+    await store.setMatchTeams(futureKo!.id, "Locklandia", "Testovia");
     lockedMatchId = locked!.id;
-    openMatchId = open!.id;
+    openMatchId = futureKo!.id;
   });
 
   it("REJECTS a pick on a match whose kickoff has passed", async () => {

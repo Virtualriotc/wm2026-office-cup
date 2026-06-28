@@ -40,6 +40,7 @@ import {
   resolveResult,
 } from "./scoring";
 import type { RecomputeOutput } from "./scoring";
+import { computeIntegrity, type IntegrityReport } from "./integrity";
 import {
   DEPARTMENTS,
   ALL_DEPARTMENT_NAMES,
@@ -48,6 +49,8 @@ import {
   MAX_DEPARTMENT_NAME_LEN,
   slugify,
   hasKnownTeams,
+  assertWriteableTeams,
+  assertNoDuplicateFixture,
 } from "./seed";
 
 // Re-exported so existing importers (app/actions/account.ts, UI) keep working.
@@ -125,6 +128,8 @@ export interface DataStore {
   getAwards(): Promise<Awards>;
   /** Ingestion heartbeat: last sync time + note + feed-result count. */
   getSyncStatus(): Promise<SyncStatus>;
+  /** Daily integrity self-check over the current data (read-only). */
+  getIntegrityReport(): Promise<IntegrityReport>;
 
   // -- writes --
   /**
@@ -788,6 +793,15 @@ export class MockStore implements DataStore {
     };
   }
 
+  async getIntegrityReport(): Promise<IntegrityReport> {
+    return computeIntegrity({
+      matches: this.matches,
+      predictions: this.predictions.map((p) => ({ userId: p.userId, matchId: p.matchId, pick: p.pick })),
+      results: this.results.map((r) => ({ matchId: r.matchId })),
+      now: this.now(),
+    });
+  }
+
   async markSync(note?: string): Promise<void> {
     this.lastSyncAt = this.now().toISOString();
     this.lastSyncNote = note ?? null;
@@ -800,6 +814,8 @@ export class MockStore implements DataStore {
   ): Promise<Match> {
     const match = this.matches.find((m) => m.id === matchId);
     if (!match) throw new Error(`Unknown match: ${matchId}`);
+    assertWriteableTeams(matchId, home, away);
+    assertNoDuplicateFixture(this.matches, matchId, match.stage, home, away);
     match.home = home;
     match.away = away;
     return { ...match };
@@ -892,6 +908,9 @@ class NeonStore implements DataStore {
   }
   async getSyncStatus(): Promise<SyncStatus> {
     return (await this.resolve()).getSyncStatus();
+  }
+  async getIntegrityReport(): Promise<IntegrityReport> {
+    return (await this.resolve()).getIntegrityReport();
   }
   async createUser(
     displayName: string,

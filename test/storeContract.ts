@@ -427,5 +427,44 @@ export function runStoreContract(label: string, make: MakeContractStore): void {
       const again = await store.getPreviousDayDeptRanks();
       expect(again).toEqual(ranks);
     });
+
+    it("setMatchTeams refuses placeholders AND duplicate fixtures (the structural guard)", async () => {
+      const r32 = (await store.getMatches()).filter((m) => m.stage === "r32");
+      expect(r32.length).toBeGreaterThanOrEqual(2);
+      const [a, b] = r32;
+
+      // 1. refuse writing a descriptor/placeholder as a real team
+      await expect(
+        store.setMatchTeams(a!.id, "Group A Winner", "Brazil"),
+      ).rejects.toThrow(/placeholder/i);
+
+      // 2. resolving to two real teams works
+      const resolved = await store.setMatchTeams(a!.id, "Brazil", "Argentina");
+      expect(resolved.home).toBe("Brazil");
+
+      // 3. refuse writing that SAME matchup onto a DIFFERENT slot — order-insensitive
+      await expect(
+        store.setMatchTeams(b!.id, "Argentina", "Brazil"),
+      ).rejects.toThrow(/duplicate/i);
+
+      // 4. re-resolving the SAME slot to the SAME teams is fine (idempotent, not a dup)
+      await expect(
+        store.setMatchTeams(a!.id, "Brazil", "Argentina"),
+      ).resolves.toBeTruthy();
+    });
+
+    it("getIntegrityReport runs and flags only the legit issues on the seeded slate", async () => {
+      const report = await store.getIntegrityReport();
+      expect(report).toHaveProperty("ok");
+      expect(Array.isArray(report.issues)).toBe(true);
+      // The clean seed has NO duplicate fixtures and NO double-picks — those
+      // checks must be silent. (A placeholder-leak warning IS expected here: the
+      // fixed 2026-07-01 clock makes the still-unresolved early KO slots "locked",
+      // which is exactly the real signal the check exists to raise.)
+      const offending = report.issues.filter(
+        (i) => i.check === "duplicate_ko_fixtures" || i.check === "double_picks",
+      );
+      expect(offending).toEqual([]);
+    });
   });
 }

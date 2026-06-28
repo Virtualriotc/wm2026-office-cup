@@ -178,7 +178,9 @@ async function hasOrganizerCookie(): Promise<boolean> {
   const jar = await cookies();
   const cookie = jar.get(ORGANIZER_COOKIE)?.value;
   if (!cookie) return false;
-  return cookie === (await hashToken(expected));
+  // Constant-time compare so the organizer session hash can't be recovered
+  // byte-by-byte via a response-timing oracle (matches verifyToken/unlock).
+  return constantTimeEqual(cookie, await hashToken(expected));
 }
 
 /**

@@ -14,6 +14,7 @@
 // ============================================================================
 
 import { describe, it, expect } from "vitest";
+import type { Match } from "../types";
 import {
   parseEspnScoreboard,
   matchEspnToSeed,
@@ -228,6 +229,41 @@ describe("matchEspnKoTeams — never resolves a slot to an ESPN descriptor", () 
   it("resolves NOTHING when only ONE side is a descriptor (need BOTH real)", () => {
     const ev = koEvent(r32.kickoff, "Argentina", "Group C Winner");
     expect(matchEspnKoTeams([ev], [r32])).toEqual([]);
+  });
+});
+
+describe("resolveKoTeamsByStructure — keys on kickoff, never duplicates as the bracket fills", () => {
+  const koSlot = (id: string, kickoff: string): Match => ({
+    id,
+    stage: "r32",
+    group: null,
+    home: "Group A Winner", // placeholder; the matcher keys on kickoff, not this
+    away: "Group B 2nd Place",
+    kickoff,
+    status: "scheduled",
+    externalRef: null,
+  });
+
+  it("does NOT assign an already-used pair to the next still-empty same-day slot", () => {
+    // THE LIVE BUG: two R32 slots on Jun 29 — 17:00 (resolved on an earlier run,
+    // so dropped from the unresolved list) and 20:30 (still empty). The feed
+    // still carries the 17:00 real pair. The OLD index matcher wrote feed[0]
+    // (Brazil v Japan, a 17:00 game) onto the 20:30 slot — a duplicate. Keying on
+    // kickoff, 17:00 != 20:30, so the 20:30 slot resolves to NOTHING.
+    const slot2030 = koSlot("slot-2030", "2026-06-29T20:30:00.000Z");
+    const feed1700 = koEvent("2026-06-29T17:00:00.000Z", "Brazil", "Japan");
+    expect(matchEspnKoTeams([feed1700], [slot2030])).toEqual([]);
+  });
+
+  it("resolves each slot to the event with its OWN kickoff", () => {
+    const slot1700 = koSlot("slot-1700", "2026-06-29T17:00:00.000Z");
+    const slot2030 = koSlot("slot-2030", "2026-06-29T20:30:00.000Z");
+    const e1 = koEvent("2026-06-29T17:00:00.000Z", "Brazil", "Japan");
+    const e2 = koEvent("2026-06-29T20:30:00.000Z", "Germany", "Spain");
+    expect(matchEspnKoTeams([e1, e2], [slot1700, slot2030])).toEqual([
+      { matchId: "slot-1700", home: "Brazil", away: "Japan" },
+      { matchId: "slot-2030", home: "Germany", away: "Spain" },
+    ]);
   });
 });
 

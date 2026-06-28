@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { runSync } from "@/lib/ingest/sync";
 import { constantTimeEqual } from "@/lib/auth";
+import { getStore } from "@/lib/data";
+import { summariseIntegrity } from "@/lib/integrity";
+import { notifyTelegram } from "@/lib/notify";
 
 // ============================================================================
 // Cron route — AUTO-INGEST results (source of truth), then recompute.
@@ -45,6 +48,18 @@ export async function GET(request: Request) {
   // throws, so the cron can't error out.
   const sync = await runSync();
 
+  // DAILY SELF-CHECK: after every sync, diff the data against its own invariants
+  // (duplicate fixtures, placeholder leaks, double-picks, stranded results…) and
+  // surface the result on the organizer dashboard. On an ALARM, also ping
+  // Telegram (if configured) so drift is caught by a machine in minutes — not by
+  // a colleague's screenshot days later. Best-effort: never fails the cron.
+  let integrity: Awaited<ReturnType<typeof runIntegrity>> | null = null;
+  try {
+    integrity = await runIntegrity(sync.note);
+  } catch {
+    /* integrity check is advisory; a failure must not break the cron */
+  }
+
   return NextResponse.json({
     ok: true,
     koResolved: sync.koResolved,
@@ -52,5 +67,19 @@ export async function GET(request: Request) {
     pending: sync.pending,
     status: sync.status,
     note: sync.note,
+    integrity: integrity ? { ok: integrity.ok, issues: integrity.issues } : null,
   });
+}
+
+/** Run the integrity check, stamp the dashboard note, alarm on any `alarm`. */
+async function runIntegrity(syncNote: string) {
+  const store = getStore();
+  const report = await store.getIntegrityReport();
+  const summary = summariseIntegrity(report);
+  // Surface on the organizer dashboard alongside the sync note.
+  await store.markSync(`${syncNote} · ${summary}`);
+  if (!report.ok) {
+    await notifyTelegram(`🚨 WM2026 ${summary}`);
+  }
+  return report;
 }

@@ -54,7 +54,10 @@ import {
   MAX_DEPARTMENT_NAME_LEN,
   slugify,
   hasKnownTeams,
+  assertWriteableTeams,
+  assertNoDuplicateFixture,
 } from "../lib/seed";
+import { computeIntegrity, type IntegrityReport } from "../lib/integrity";
 import * as schema from "./schema";
 
 // A Drizzle pg database handle, agnostic to the underlying driver
@@ -806,6 +809,22 @@ export class DrizzleStore implements DataStore {
     };
   }
 
+  async getIntegrityReport(): Promise<IntegrityReport> {
+    const [matchRows, predRows, resultRows] = await Promise.all([
+      this.db.select().from(schema.matches),
+      this.db
+        .select({ userId: schema.predictions.userId, matchId: schema.predictions.matchId, pick: schema.predictions.pick })
+        .from(schema.predictions),
+      this.db.select({ matchId: schema.results.matchId }).from(schema.results),
+    ]);
+    return computeIntegrity({
+      matches: matchRows.map(toMatch),
+      predictions: predRows,
+      results: resultRows,
+      now: this.now(),
+    });
+  }
+
   async markSync(note?: string): Promise<void> {
     const now = this.now();
     await this.db
@@ -824,6 +843,22 @@ export class DrizzleStore implements DataStore {
   ): Promise<Match> {
     // Overwrite a KO match's placeholder teams with the resolved real teams.
     await this.assertMatchExists(matchId);
+    // Store-boundary invariants (same as MockStore): never write a placeholder,
+    // never create a duplicate fixture in the same stage. A feed/resolver bug
+    // therefore cannot corrupt the bracket; the caller's try/catch skips a reject.
+    assertWriteableTeams(matchId, home, away);
+    const self = (
+      await this.db
+        .select({ stage: schema.matches.stage })
+        .from(schema.matches)
+        .where(eq(schema.matches.id, matchId))
+        .limit(1)
+    )[0]!;
+    const sameStage = await this.db
+      .select({ id: schema.matches.id, stage: schema.matches.stage, home: schema.matches.home, away: schema.matches.away })
+      .from(schema.matches)
+      .where(eq(schema.matches.stage, self.stage));
+    assertNoDuplicateFixture(sameStage, matchId, self.stage, home, away);
     await this.db
       .update(schema.matches)
       .set({ home, away })

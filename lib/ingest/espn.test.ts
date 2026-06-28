@@ -147,6 +147,17 @@ describe("normalizeTeamName — alias map", () => {
   it("aligns ESPN 'Congo DR' with schedule 'DR Congo' (verified vs live ESPN)", () => {
     expect(normalizeTeamName("Congo DR")).toBe(normalizeTeamName("DR Congo"));
   });
+
+  it("aligns the apostrophe form: \"Côte d'Ivoire\" == 'Ivory Coast'", () => {
+    // "Côte d'Ivoire" accent-strips to "cote-d-ivoire" (standalone d) — a gap the
+    // audit flagged: only "cote-divoire" was mapped. Both must converge now.
+    expect(normalizeTeamName("Côte d'Ivoire")).toBe(normalizeTeamName("Ivory Coast"));
+  });
+
+  it("aligns the 'US' abbreviation and bare 'Korea' (preventive hardening)", () => {
+    expect(normalizeTeamName("US")).toBe(normalizeTeamName("United States"));
+    expect(normalizeTeamName("Korea")).toBe(normalizeTeamName("South Korea"));
+  });
 });
 
 describe("matchEspnToSeed — maps real ESPN events to seeded matches", () => {

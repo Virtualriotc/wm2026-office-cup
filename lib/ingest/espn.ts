@@ -265,9 +265,12 @@ const NAME_ALIASES: Record<string, string> = {
   "czech-republic": "czech-republic",
   // Korea
   "korea-republic": "south-korea",
+  "republic-of-korea": "south-korea",
+  korea: "south-korea",
   "south-korea": "south-korea",
   // USA
   usa: "united-states",
+  us: "united-states",
   "united-states-of-america": "united-states",
   "united-states": "united-states",
   // Türkiye (accent-stripped to "turkiye")
@@ -275,8 +278,10 @@ const NAME_ALIASES: Record<string, string> = {
   turkiye: "turkiye",
   // Curaçao (accent-stripped to "curacao")
   curacao: "curacao",
-  // Côte d'Ivoire
+  // Côte d'Ivoire — "Côte d'Ivoire" accent-strips to "cote-d-ivoire" (note the
+  // standalone "d"), so map BOTH that and the no-apostrophe form to one token.
   "ivory-coast": "cote-divoire",
+  "cote-d-ivoire": "cote-divoire",
   "cote-divoire": "cote-divoire",
   // Bosnia
   "bosnia-and-herzegovina": "bosnia-herzegovina",

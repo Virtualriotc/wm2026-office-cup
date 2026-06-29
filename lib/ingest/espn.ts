@@ -32,7 +32,7 @@
 
 import "server-only";
 import type { Match, Outcome, Stage } from "../types";
-import { isPlaceholderTeam } from "../seed";
+import { isPlaceholderTeam, hasKnownTeams } from "../seed";
 
 const SCOREBOARD_URL =
   "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard";
@@ -317,16 +317,15 @@ function utcDay(iso: string): string {
   return new Date(iso).toISOString().slice(0, 10);
 }
 
-/** True for a seeded match whose teams are bracket placeholders, not real teams. */
-function isKnockoutPlaceholder(match: Match): boolean {
-  // Group matches always have real teams. KO seed teams look like "W73","1A","L101".
-  return match.stage !== "group";
-}
-
 /**
  * Map a single ESPN result to a seeded match id, or null if no confident match.
  * Matches on (UTC day == UTC day) AND (unordered normalized team-name pair).
- * Skips knockout placeholder fixtures (their team labels can't name-match).
+ *
+ * Skips only fixtures whose TEAMS are still bracket placeholders (any stage) —
+ * those can't name-match. A RESOLVED knockout fixture (real teams) matches by
+ * date+pair exactly like a group match, so its result auto-ingests. (This used
+ * to skip ALL knockout fixtures by stage, which stranded every R32+ result once
+ * the bracket filled in.)
  */
 export function matchEspnToSeed(
   espn: EspnResult,
@@ -335,14 +334,11 @@ export function matchEspnToSeed(
   const espnDay = utcDay(espn.dateUtc);
   const espnPair = pairKey(espn.homeName, espn.awayName);
   for (const m of matches) {
-    if (isKnockoutPlaceholder(m)) continue; // TODO(KO): drop this once KO teams fill — see below.
+    if (!hasKnownTeams(m)) continue; // unresolved placeholder — can't name-match
     if (utcDay(m.kickoff) !== espnDay) continue;
     if (pairKey(m.home, m.away) === espnPair) return m.id;
   }
   return null;
-  // TODO(KO): when knockout fixtures get real team names (bracket fills), remove
-  // the isKnockoutPlaceholder skip so KO results auto-ingest too. The date+pair
-  // matcher already works for any stage; only the placeholder guard blocks it.
 }
 
 /** A completed ESPN result resolved to one of our matches. */

@@ -175,6 +175,32 @@ describe("matchEspnToSeed — maps real ESPN events to seeded matches", () => {
     expect(id).toBe("of-matchday-1-south-korea-czech-republic");
   });
 
+  it("ingests a RESOLVED knockout result (the old stage guard stranded these)", () => {
+    // The live bug: R32 onwards never scored because the matcher skipped ANY
+    // non-group fixture. A KO slot with REAL teams must match by date+pair.
+    const koSlot: Match = {
+      id: "r32-sa-can", stage: "r32", group: null, home: "South Africa",
+      away: "Canada", kickoff: "2026-06-28T19:00:00.000Z", status: "scheduled", externalRef: null,
+    };
+    const espn: EspnResult = {
+      dateUtc: "2026-06-28T19:00:00.000Z", homeName: "South Africa", awayName: "Canada",
+      homeAbbr: null, awayAbbr: null, completed: true, outcome: "away", detail: "FT", seasonSlug: "round-of-32",
+    };
+    expect(matchEspnToSeed(espn, [koSlot])).toBe("r32-sa-can");
+  });
+
+  it("still skips an UNRESOLVED knockout placeholder (can't name-match)", () => {
+    const placeholder: Match = {
+      id: "r32-ph", stage: "r32", group: null, home: "Group A Winner",
+      away: "Group B 2nd Place", kickoff: "2026-06-28T19:00:00.000Z", status: "scheduled", externalRef: null,
+    };
+    const espn: EspnResult = {
+      dateUtc: "2026-06-28T19:00:00.000Z", homeName: "South Africa", awayName: "Canada",
+      homeAbbr: null, awayAbbr: null, completed: true, outcome: "away", detail: "FT", seasonSlug: "round-of-32",
+    };
+    expect(matchEspnToSeed(espn, [placeholder])).toBeNull();
+  });
+
   it("returns null when no seeded match shares the date + team pair", () => {
     const phantom: EspnResult = {
       dateUtc: "2026-06-11T19:00Z",

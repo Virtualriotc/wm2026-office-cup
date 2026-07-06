@@ -169,8 +169,6 @@ export default async function ScoreboardPage() {
         rows={leaderboard}
         departments={departments}
         viewerId={user?.id ?? null}
-        linkHref="/predict"
-        linkLabel="Where you stand →"
       />
 
       {/* Fun superlatives — only the awards that have a winner show. */}

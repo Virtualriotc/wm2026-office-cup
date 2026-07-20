@@ -66,8 +66,18 @@ export function withDayOverDayDelta(
   });
 }
 
-function abbrOf(name: string): string {
-  const cleaned = name.replace(/[^A-Za-z]/g, "");
+/**
+ * Two-letter badge for a department, taken from its LAST word.
+ *
+ * It used to take the first two letters of the whole name, which made every
+ * badge in this office read "EN" — every department is "Energy something". The
+ * distinguishing word is the last one, so "Energy Invoicing" -> "IN" and
+ * "Energy Ops" -> "OP".
+ */
+export function abbrOf(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  const last = words[words.length - 1] ?? name;
+  const cleaned = last.replace(/[^A-Za-z0-9]/g, "");
   return (cleaned.slice(0, 2) || name.slice(0, 2)).toUpperCase();
 }
 

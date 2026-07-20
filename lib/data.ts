@@ -41,6 +41,7 @@ import {
 } from "./scoring";
 import type { RecomputeOutput } from "./scoring";
 import { computeIntegrity, type IntegrityReport } from "./integrity";
+import { computeFinale, type FinaleReport } from "./finale";
 import {
   DEPARTMENTS,
   ALL_DEPARTMENT_NAMES,
@@ -130,6 +131,12 @@ export interface DataStore {
   getSyncStatus(): Promise<SyncStatus>;
   /** Daily integrity self-check over the current data (read-only). */
   getIntegrityReport(): Promise<IntegrityReport>;
+  /**
+   * Full-time report: champion, office stats, and — when `viewerId` is given —
+   * that viewer's own tournament. Null until the FINAL has a recorded result,
+   * so the scoreboard can branch on it directly. Read-only.
+   */
+  getFinaleReport(viewerId?: string | null): Promise<FinaleReport | null>;
 
   // -- writes --
   /**
@@ -802,6 +809,16 @@ export class MockStore implements DataStore {
     });
   }
 
+  async getFinaleReport(viewerId?: string | null): Promise<FinaleReport | null> {
+    return computeFinale({
+      matches: this.matches,
+      results: this.results.map((r) => ({ matchId: r.matchId, outcome: r.outcome })),
+      predictions: this.predictions.map((p) => ({ userId: p.userId, matchId: p.matchId, pick: p.pick })),
+      users: this.users.map((u) => ({ id: u.id, displayName: u.displayName })),
+      viewerId,
+    });
+  }
+
   async markSync(note?: string): Promise<void> {
     this.lastSyncAt = this.now().toISOString();
     this.lastSyncNote = note ?? null;
@@ -911,6 +928,9 @@ class NeonStore implements DataStore {
   }
   async getIntegrityReport(): Promise<IntegrityReport> {
     return (await this.resolve()).getIntegrityReport();
+  }
+  async getFinaleReport(viewerId?: string | null): Promise<FinaleReport | null> {
+    return (await this.resolve()).getFinaleReport(viewerId);
   }
   async createUser(
     displayName: string,

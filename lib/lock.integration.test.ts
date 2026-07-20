@@ -8,27 +8,40 @@
 // a malicious or buggy client could try to abuse.
 //
 // Runs on the in-memory mock store (DATABASE_URL unset in this test process).
-// The production DEFAULT now seeds the REAL openfootball schedule with NOTHING
-// in the past (the WM starts 11 Jun 2026), so to get a deterministic
-// already-kicked-off match we opt into the DEMO snapshot (SEED_DEMO=1), which
-// fakes the three earliest group fixtures into the past relative to the wall
-// clock and keeps the rest in the future — giving us both a locked and an open
-// match regardless of when the test runs.
+// The production DEFAULT now seeds the REAL openfootball schedule, so we opt
+// into the DEMO snapshot (SEED_DEMO=1) to guarantee an already-kicked-off
+// fixture as well as an open one.
 //
-// Set BEFORE the first getStore() so the memoized MockStore reads the flag.
+// The CLOCK IS FROZEN mid-tournament. It used to run against the wall clock,
+// which quietly stopped working the moment the real cup finished: with every
+// fixture in the past there is no open match left to accept a pick, so the
+// test failed for a reason that had nothing to do with the lock. A fixed
+// instant makes it deterministic forever.
+//
+// Both the env flag and the clock are set BEFORE the first getStore() so the
+// memoized MockStore seeds against them.
 // ============================================================================
 
 process.env.SEED_DEMO = "1";
 
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import { getStore } from "./data";
 import type { User } from "./types";
+
+// Group stage under way: earlier fixtures locked, knockouts still ahead.
+// Only Date is faked — timers and promises keep working normally.
+vi.useFakeTimers({ toFake: ["Date"] });
+vi.setSystemTime(new Date("2026-06-20T12:00:00.000Z"));
 
 describe("server-side lock (store.savePredictions)", () => {
   const store = getStore();
   let user: User;
   let lockedMatchId: string;
   let openMatchId: string;
+
+  afterAll(() => {
+    vi.useRealTimers();
+  });
 
   beforeAll(async () => {
     // A fresh participant, so we don't collide with the seeded demo picks.

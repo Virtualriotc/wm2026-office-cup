@@ -354,6 +354,49 @@ select.nb-input::-ms-expand {
 }
 
 /* ----------------------------------------------------------------------------
+   Full-time confetti. Purely decorative, fires once when the cup is over.
+   Animates ONLY transform + opacity so it stays on the compositor. The
+   component mounts client-side and unmounts itself when the fall is done, so
+   nothing keeps animating behind the standings.
+   --------------------------------------------------------------------------- */
+.nb-confetti {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 60;
+}
+
+.nb-confetti__piece {
+  position: absolute;
+  top: -8vh;
+  width: 9px;
+  height: 14px;
+  border: 1.5px solid var(--color-ink);
+  will-change: transform, opacity;
+  animation-name: confetti-fall;
+  animation-timing-function: cubic-bezier(0.25, 0.6, 0.5, 1);
+  animation-fill-mode: forwards;
+}
+
+@keyframes confetti-fall {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(var(--drift, 0px), 112vh, 0) rotate(var(--spin, 540deg));
+    opacity: 0;
+  }
+}
+
+/* ----------------------------------------------------------------------------
    Reduced-motion base: kill non-essential animation app-wide. Motion
    components ALSO branch on this in JS; this is the CSS safety net.
    --------------------------------------------------------------------------- */

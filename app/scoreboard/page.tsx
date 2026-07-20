@@ -254,6 +254,7 @@ function FinaleView({
         report={report}
         standings={standings}
         leaderboard={leaderboard}
+        departments={departments}
         viewerId={viewerId}
       />
 

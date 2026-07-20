@@ -178,6 +178,8 @@ export interface CopyShape {
     thanksTitle: string;
     thanksBody: string;
     thanksSignature: string;
+    /** Bridge line into the stats that follow the thank-you. */
+    thanksStatsLead: string;
     standingsTitle: string;
   };
 
@@ -417,6 +419,7 @@ const en: CopyShape = {
     thanksBody:
       "Every pick, every wrong call, every lucky draw — you made the group chat worth reading for six weeks. Same again in 2030?",
     thanksSignature: "— Max & Vatsal",
+    thanksStatsLead: "Here's how you made it fun",
     standingsTitle: "Final standings",
   },
 

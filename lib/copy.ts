@@ -145,6 +145,8 @@ export interface CopyShape {
     signInToPick: string;
     consensusLabel: string; // "Office picked"
     empty: string;
+    /** Shown instead of `empty` once every fixture has kicked off. */
+    emptyFinished: string;
   };
 
   /** Pre-tournament countdown hero (shown on the scoreboard before kickoff). */
@@ -156,6 +158,22 @@ export interface CopyShape {
     picksCta: string; // primary CTA -> /predict
     picksOpenSubline: string; // "predictions are open" reassurance
     lineupLabel: string; // "At the start line"
+  };
+
+  /** Full-time surface (shown on the scoreboard once the final is played). */
+  finale: {
+    eyebrow: string;
+    header: string;
+    championLabel: string; // "World champions"
+    championLine: string; // "{winner} beat {loser} in the final"
+    officeTitle: string;
+    officeWinnerLine: string; // "{dept} take the office cup"
+    podiumLabel: string;
+    yourTitle: string;
+    statsTitle: string;
+    thanksTitle: string;
+    thanksBody: string;
+    standingsTitle: string;
   };
 
   /** The department race (home / hero of the scoreboard). */
@@ -364,6 +382,7 @@ const en: CopyShape = {
     signInToPick: "Join with a code above to lock in your pick →",
     consensusLabel: "Office picked",
     empty: "All caught up. Your next picks open after tonight's games.",
+    emptyFinished: "That's the cup. Every match is played and every point is in.",
   },
 
   countdown: {
@@ -374,6 +393,22 @@ const en: CopyShape = {
     picksCta: "Get your group-stage picks in",
     picksOpenSubline: "Predictions are open now — lock in your group stage before the first whistle.",
     lineupLabel: "At the start line",
+  },
+
+  finale: {
+    eyebrow: "Full time · WM 2026",
+    header: "That's a wrap",
+    championLabel: "World champions",
+    championLine: "{winner} beat {loser} in the final",
+    officeTitle: "Your office cup",
+    officeWinnerLine: "{dept} take it",
+    podiumLabel: "The podium",
+    yourTitle: "Your tournament",
+    statsTitle: "By the numbers",
+    thanksTitle: "Thanks for playing",
+    thanksBody:
+      "Every pick, every wrong call, every lucky draw — you made the group chat worth reading for six weeks. See you at the next one.",
+    standingsTitle: "Final standings",
   },
 
   race: {

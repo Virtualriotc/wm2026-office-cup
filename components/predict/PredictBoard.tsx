@@ -228,7 +228,7 @@ export function PredictBoard({
           ) : null}
         </section>
       ) : (
-        <EmptyOpen />
+        <EmptyOpen allMatches={allMatches} />
       )}
 
       {/* locked / scored matches, read-only */}
@@ -486,7 +486,14 @@ function JoinPrompt() {
   );
 }
 
-function EmptyOpen() {
+function EmptyOpen({ allMatches }: { allMatches: Match[] }) {
+  // Once every fixture has kicked off there is no "next" matchday to wait for,
+  // so the usual "picks open after tonight's games" line would be a promise we
+  // can't keep. Point at the final table instead.
+  const finished =
+    allMatches.length > 0 &&
+    allMatches.every((m) => new Date(m.kickoff).getTime() <= Date.now());
+
   return (
     <div
       className="rounded-[16px] p-6 text-center"
@@ -496,7 +503,14 @@ function EmptyOpen() {
         boxShadow: "var(--shadow-hard-sm)",
       }}
     >
-      <p className="font-bold">{COPY.predict.empty}</p>
+      <p className="font-bold">
+        {finished ? COPY.predict.emptyFinished : COPY.predict.empty}
+      </p>
+      {finished ? (
+        <Link href="/scoreboard" className="mt-2 inline-block text-[0.85rem] font-bold">
+          See the final table →
+        </Link>
+      ) : null}
     </div>
   );
 }

@@ -25,10 +25,13 @@ export function TopPlayers({
   rows,
   departments,
   viewerId,
+  title = "Top players",
 }: {
   rows: LeaderboardRow[];
   departments: Department[];
   viewerId: string | null;
+  /** Heading override — the finale page calls these the final standings. */
+  title?: string;
 }) {
   const [shown, setShown] = useState(INITIAL);
   if (rows.length === 0) return null;
@@ -68,7 +71,7 @@ export function TopPlayers({
   return (
     <Card className="p-4 sm:p-5">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <h2 className="display text-[1.15rem]">Top players</h2>
+        <h2 className="display text-[1.15rem]">{title}</h2>
         {anyScored ? (
           <span
             className="tnum text-[0.72rem] font-bold"

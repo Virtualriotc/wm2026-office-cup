@@ -13,7 +13,17 @@ import {
   isPreTournament,
   hasScoredResult,
 } from "@/components/scoreboard/scoreboardState";
-import type { Awards, Consensus, Department, Match } from "@/lib/types";
+import { FinaleHero, ThankYou } from "@/components/scoreboard/FinaleHero";
+import { Confetti } from "@/components/scoreboard/Confetti";
+import { isTournamentOver, type FinaleReport } from "@/lib/finale";
+import type {
+  Awards,
+  Consensus,
+  Department,
+  DepartmentStanding,
+  LeaderboardRow,
+  Match,
+} from "@/lib/types";
 
 // The scoreboard reads live from the data store on every request. The mock
 // store reflects the wall clock, so locked/upcoming matches are real relative
@@ -65,6 +75,26 @@ export default async function ScoreboardPage() {
   if (isPreTournament(firstKickoff, new Date()) && firstKickoff) {
     const firstMatch = matches.find((m) => m.kickoff === firstKickoff) ?? matches[0]!;
     return <CountdownHero target={firstKickoff} firstMatch={firstMatch} departments={departments} awards={awards} />;
+  }
+
+  // ...and the other end of the same switch: once the FINAL is scored nothing
+  // can move again, so the race is replaced by the full-time report. The
+  // report load is deliberately behind this guard — it reads every prediction,
+  // which is wasted work on every request while the cup is still running.
+  if (isTournamentOver(matches, results)) {
+    const report = await store.getFinaleReport(user?.id ?? null);
+    if (report) {
+      return (
+        <FinaleView
+          report={report}
+          standings={standings}
+          leaderboard={leaderboard}
+          departments={departments}
+          awards={awards}
+          viewerId={user?.id ?? null}
+        />
+      );
+    }
   }
 
   // Reframe each lane's climb as a DAY-OVER-DAY change (today's rank vs the
@@ -179,6 +209,64 @@ export default async function ScoreboardPage() {
           Demo view — showing the sample player &ldquo;{user?.displayName}&rdquo;. Join with a code to track your own.
         </p>
       ) : null}
+    </div>
+  );
+}
+
+/**
+ * Full-time page. Everything that implied "still running" is gone: no live
+ * heartbeat, no biggest-mover badge, no next-match consensus, no race. What's
+ * left is the result, the office winners, your own card, the numbers, the
+ * final tables and a thank-you — plus confetti, once, on arrival.
+ */
+function FinaleView({
+  report,
+  standings,
+  leaderboard,
+  departments,
+  awards,
+  viewerId,
+}: {
+  report: FinaleReport;
+  standings: DepartmentStanding[];
+  leaderboard: LeaderboardRow[];
+  departments: Department[];
+  awards: Awards;
+  viewerId: string | null;
+}) {
+  return (
+    <div className="flex flex-col gap-6 py-4">
+      <Confetti />
+
+      <div>
+        <p
+          className="text-[0.72rem] font-extrabold uppercase tracking-[0.14em]"
+          style={{ color: "var(--color-muted)" }}
+        >
+          {COPY.finale.eyebrow}
+        </p>
+        <h1 className="display text-[clamp(2rem,7vw,3.25rem)]">
+          {COPY.finale.header}
+        </h1>
+      </div>
+
+      <FinaleHero
+        report={report}
+        standings={standings}
+        leaderboard={leaderboard}
+        viewerId={viewerId}
+      />
+
+      <TopPlayers
+        rows={leaderboard}
+        departments={departments}
+        viewerId={viewerId}
+        title={COPY.finale.standingsTitle}
+      />
+
+      <Superlatives awards={awards} subtitle="The ones worth arguing about." />
+
+      <ThankYou players={report.players} />
     </div>
   );
 }

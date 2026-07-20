@@ -58,6 +58,7 @@ import {
   assertNoDuplicateFixture,
 } from "../lib/seed";
 import { computeIntegrity, type IntegrityReport } from "../lib/integrity";
+import { computeFinale, type FinaleReport } from "../lib/finale";
 import * as schema from "./schema";
 
 // A Drizzle pg database handle, agnostic to the underlying driver
@@ -822,6 +823,28 @@ export class DrizzleStore implements DataStore {
       predictions: predRows,
       results: resultRows,
       now: this.now(),
+    });
+  }
+
+  async getFinaleReport(viewerId?: string | null): Promise<FinaleReport | null> {
+    const [matchRows, resultRows, predRows, userRows] = await Promise.all([
+      this.db.select().from(schema.matches),
+      this.db
+        .select({ matchId: schema.results.matchId, outcome: schema.results.outcome })
+        .from(schema.results),
+      this.db
+        .select({ userId: schema.predictions.userId, matchId: schema.predictions.matchId, pick: schema.predictions.pick })
+        .from(schema.predictions),
+      this.db
+        .select({ id: schema.users.id, displayName: schema.users.displayName })
+        .from(schema.users),
+    ]);
+    return computeFinale({
+      matches: matchRows.map(toMatch),
+      results: resultRows,
+      predictions: predRows,
+      users: userRows,
+      viewerId,
     });
   }
 

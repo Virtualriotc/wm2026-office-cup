@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { withDayOverDayDelta, buildRaceModel } from "./raceModel";
+import { withDayOverDayDelta, buildRaceModel, abbrOf } from "./raceModel";
 import type { DepartmentStanding } from "@/lib/types";
 
 const dept = (
@@ -74,5 +74,21 @@ describe("withDayOverDayDelta", () => {
     const model = buildRaceModel(standings, null, true);
     expect(model.isDemo).toBe(true);
     expect(model.mover).not.toBeNull();
+  });
+});
+
+describe("abbrOf", () => {
+  it("distinguishes departments that share a leading word", () => {
+    // Every department here is "Energy something" — the first two letters of
+    // the full name would make every badge identical.
+    expect(abbrOf("Energy CP")).toBe("CP");
+    expect(abbrOf("Energy Invoicing")).toBe("IN");
+    expect(abbrOf("Energy Ops")).toBe("OP");
+    expect(abbrOf("Energy CS")).toBe("CS");
+  });
+
+  it("handles single words and punctuation", () => {
+    expect(abbrOf("Marketing")).toBe("MA");
+    expect(abbrOf("R&D")).toBe("RD");
   });
 });

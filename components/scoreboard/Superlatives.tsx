@@ -51,7 +51,14 @@ function winnersLine(w: AwardWinner): string {
  * the awards that have a winner — so before any match is played it shows just
  * the pick-based ones (or nothing). Ties show every co-winner.
  */
-export function Superlatives({ awards }: { awards: Awards }) {
+export function Superlatives({
+  awards,
+  subtitle = "A few fun ones from the office. More unlock once matches are played.",
+}: {
+  awards: Awards;
+  /** Overridden at full time, where nothing is left to unlock. */
+  subtitle?: string;
+}) {
   const present = ITEMS.map((it) => ({ ...it, win: awards[it.key] })).filter(
     (it) => it.win !== null,
   );
@@ -61,7 +68,7 @@ export function Superlatives({ awards }: { awards: Awards }) {
     <Card popIn delay={0.04} className="p-5 sm:p-6">
       <h2 className="display mb-1 text-[1.4rem]">Superlatives</h2>
       <p className="mb-4 text-[0.85rem]" style={{ color: "var(--color-muted)" }}>
-        A few fun ones from the office. More unlock once matches are played.
+        {subtitle}
       </p>
       <ul className="flex flex-col gap-2.5">
         {present.map((it) => (

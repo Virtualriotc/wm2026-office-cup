@@ -224,8 +224,11 @@ export function FinaleHero({
         )}
       </Card>
 
+      {/* ---------- Thanks, doubling as the intro to the stats below ---------- */}
+      <ThankYou players={report.players} delay={0.05} />
+
       {/* ---------- 2. The department race ---------- */}
-      <Card popIn delay={0.05} className="p-5 sm:p-6">
+      <Card popIn delay={0.1} className="p-5 sm:p-6">
         <h2 className="display text-[1.4rem]">{COPY.finale.officeTitle}</h2>
 
         {deptWinner ? (
@@ -343,7 +346,7 @@ export function FinaleHero({
 
       {/* ---------- 3. Your own tournament ---------- */}
       {personal ? (
-        <Card popIn delay={0.1} className="p-5 sm:p-6">
+        <Card popIn delay={0.15} className="p-5 sm:p-6">
           <h2 className="display text-[1.4rem]">{COPY.finale.yourTitle}</h2>
           <p className="mt-0.5 text-[0.85rem]" style={{ color: "var(--color-muted)" }}>
             {personal.displayName}
@@ -392,7 +395,7 @@ export function FinaleHero({
       ) : null}
 
       {/* ---------- 4. Office-wide numbers ---------- */}
-      <Card popIn delay={0.15} className="p-5 sm:p-6">
+      <Card popIn delay={0.2} className="p-5 sm:p-6">
         <h2 className="display text-[1.4rem]">{COPY.finale.statsTitle}</h2>
 
         <div
@@ -453,7 +456,7 @@ export function FinaleHero({
       </Card>
 
       {/* ---------- 5. The actual World Cup — a footnote, not the headline ---- */}
-      <Card popIn delay={0.2} className="p-4 sm:p-5">
+      <Card popIn delay={0.25} className="p-4 sm:p-5">
         <p
           className="text-[0.62rem] font-extrabold uppercase tracking-[0.12em]"
           style={{ color: "var(--color-muted)" }}
@@ -490,10 +493,14 @@ export function FinaleHero({
   );
 }
 
-/** The sign-off, rendered at the very bottom of the finale page. */
-export function ThankYou({ players }: { players: number }) {
+/**
+ * Thanks from the organizers — placed right under the champion, where it also
+ * doubles as the intro to the stats below it (the closing `thanksStatsLead`
+ * line hands off to the department race, your card and the numbers).
+ */
+export function ThankYou({ players, delay = 0.05 }: { players: number; delay?: number }) {
   return (
-    <Card popIn delay={0.25} className="p-6 text-center sm:p-8">
+    <Card popIn delay={delay} className="p-6 text-center sm:p-8">
       <span className="text-[2rem] leading-none" aria-hidden>
         👏
       </span>
@@ -507,6 +514,12 @@ export function ThankYou({ players }: { players: number }) {
       <p className="mt-3 text-[0.85rem] font-bold">All {players} of you.</p>
       <p className="mt-3 text-[0.95rem] font-extrabold">
         {COPY.finale.thanksSignature}
+      </p>
+      <p
+        className="mt-5 text-[0.66rem] font-extrabold uppercase tracking-[0.14em]"
+        style={{ color: "var(--color-muted)" }}
+      >
+        {COPY.finale.thanksStatsLead} ↓
       </p>
     </Card>
   );

@@ -13,7 +13,7 @@ import {
   isPreTournament,
   hasScoredResult,
 } from "@/components/scoreboard/scoreboardState";
-import { FinaleHero, ThankYou } from "@/components/scoreboard/FinaleHero";
+import { FinaleHero } from "@/components/scoreboard/FinaleHero";
 import { Confetti } from "@/components/scoreboard/Confetti";
 import { isTournamentOver, type FinaleReport } from "@/lib/finale";
 import type {
@@ -266,8 +266,6 @@ function FinaleView({
       />
 
       <Superlatives awards={awards} subtitle="The ones worth arguing about." />
-
-      <ThankYou players={report.players} />
     </div>
   );
 }

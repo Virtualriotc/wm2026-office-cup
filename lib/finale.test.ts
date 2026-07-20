@@ -176,6 +176,59 @@ describe("computeFinale", () => {
     expect(r.final.n).toBe(3);
   });
 
+  it("separates group-stage form from knockout form", () => {
+    const base = input(true);
+    const r = computeFinale({
+      ...base,
+      predictions: [
+        // Ana banks group points but nothing in the knockouts.
+        pick("u1", "g1", "draw"), // group, 1pt
+        pick("u1", "g2", "home"), // group, 1pt
+        pick("u1", "s1", "home"), // wrong
+        // Ben is poor in the groups, then wins the knockouts (sf = 5pts each).
+        pick("u2", "g1", "home"), // wrong
+        pick("u2", "s1", "away"), // 5pts
+        pick("u2", "s2", "away"), // 5pts
+      ],
+    })!;
+    expect(r.groupStageLeader).toEqual({ names: ["Ana"], more: 0, points: 2 });
+    expect(r.knockoutLeader).toEqual({ names: ["Ben"], more: 0, points: 10 });
+    // Ana topped the group stage, Ben was behind her there.
+    expect(r.groupStageRank.u1).toBe(1);
+    expect(r.totalPoints).toBe(12);
+  });
+
+  it("shares a group-stage rank between players level on points", () => {
+    const base = input(true);
+    const r = computeFinale({
+      ...base,
+      predictions: [
+        pick("u1", "g1", "draw"), // 1pt
+        pick("u2", "g2", "home"), // 1pt
+        pick("u3", "g1", "draw"), // 1pt
+      ],
+    })!;
+    // All three level -> all first.
+    expect(r.groupStageRank).toEqual({ u1: 1, u2: 1, u3: 1 });
+  });
+
+  it("counts unanimous calls only where a real crowd picked", () => {
+    const base = input(true);
+    const r = computeFinale({
+      ...base,
+      predictions: [
+        // g1 (draw): 12 picks, every one wrong.
+        ...Array.from({ length: 12 }, (_, i) => pick(`x${i}`, "g1", "home")),
+        // g2 (home): 12 picks, every one right.
+        ...Array.from({ length: 12 }, (_, i) => pick(`y${i}`, "g2", "home")),
+        // s1: a lone correct pick — unanimous, but far too small to count.
+        pick("u1", "s1", "away"),
+      ],
+    })!;
+    expect(r.unanimousRight).toBe(1);
+    expect(r.unanimousWrong).toBe(1);
+  });
+
   it("builds no personal card when signed out", () => {
     const r = computeFinale(input(true))!;
     expect(r.personal).toBeNull();

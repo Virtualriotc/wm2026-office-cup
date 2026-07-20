@@ -164,15 +164,20 @@ export interface CopyShape {
   finale: {
     eyebrow: string;
     header: string;
-    championLabel: string; // "World champions"
-    championLine: string; // "{winner} beat {loser} in the final"
+    championLabel: string; // "Champion of the office"
+    championLineSolo: string; // "Won it by {n} point(s)"
+    championLineTied: string; // shown when the top is shared
     officeTitle: string;
-    officeWinnerLine: string; // "{dept} take the office cup"
+    officeWinnerLine: string; // "{dept} take it"
     podiumLabel: string;
     yourTitle: string;
     statsTitle: string;
+    /** The actual World Cup result — a footnote here, not the headline. */
+    pitchTitle: string;
+    pitchLine: string; // "{winner} beat {loser} in the final"
     thanksTitle: string;
     thanksBody: string;
+    thanksSignature: string;
     standingsTitle: string;
   };
 
@@ -398,16 +403,20 @@ const en: CopyShape = {
   finale: {
     eyebrow: "Full time · WM 2026",
     header: "That's a wrap",
-    championLabel: "World champions",
-    championLine: "{winner} beat {loser} in the final",
-    officeTitle: "Your office cup",
+    championLabel: "Champion of the office",
+    championLineSolo: "Won it by {n}",
+    championLineTied: "Level at the top — nothing could split them",
+    officeTitle: "The department race",
     officeWinnerLine: "{dept} take it",
     podiumLabel: "The podium",
     yourTitle: "Your tournament",
     statsTitle: "By the numbers",
+    pitchTitle: "Out on the pitch",
+    pitchLine: "{winner} beat {loser} in the final",
     thanksTitle: "Thanks for playing",
     thanksBody:
-      "Every pick, every wrong call, every lucky draw — you made the group chat worth reading for six weeks. See you at the next one.",
+      "Every pick, every wrong call, every lucky draw — you made the group chat worth reading for six weeks. Same again in 2030?",
+    thanksSignature: "— Max & Vatsal",
     standingsTitle: "Final standings",
   },
 

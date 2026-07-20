@@ -47,6 +47,13 @@ export interface KnockoutRun {
   total: number;
 }
 
+/** Whoever led a phase of the cup on points, with any co-leaders. */
+export interface PhaseLeader {
+  names: string[];
+  more: number;
+  points: number;
+}
+
 /** One viewer's own tournament, derived from their picks alone. */
 export interface PersonalFinale {
   userId: string;
@@ -84,6 +91,18 @@ export interface FinaleReport {
   /** Most people called it right. */
   banker: CalledMatch | null;
   bestKnockout: KnockoutRun | null;
+  /** Who topped the table on group-stage points alone. */
+  groupStageLeader: PhaseLeader | null;
+  /** Who scored most across the knockout rounds. */
+  knockoutLeader: PhaseLeader | null;
+  /** Rank after the group stage, by userId — lets the UI say "4th after the
+   *  groups, first at the end". Ties share a rank. */
+  groupStageRank: Record<string, number>;
+  /** Matches a real crowd called unanimously right, and unanimously wrong. */
+  unanimousRight: number;
+  unanimousWrong: number;
+  /** Every point scored by everyone, all cup. */
+  totalPoints: number;
   /** The viewer's own tournament. Null when signed out, or when the viewer
    *  never made a pick that got scored. */
   personal: PersonalFinale | null;
@@ -244,6 +263,56 @@ export function computeFinale(input: FinaleInput): FinaleReport | null {
     };
   }
 
+  // --- how the cup was won: group-stage form vs knockout form ---
+  // Split every correct pick's points by phase. The interesting story is
+  // usually not who led wire-to-wire but who ran someone down after it.
+  const groupPoints = new Map<string, number>();
+  const koPoints = new Map<string, number>();
+  for (const p of predictions) {
+    const outcome = outcomeById.get(p.matchId);
+    if (outcome === undefined || outcome !== p.pick) continue;
+    const m = matchById.get(p.matchId);
+    if (!m) continue;
+    const pts = STAGE_POINTS[m.stage];
+    const bucket = m.stage === "group" ? groupPoints : koPoints;
+    bucket.set(p.userId, (bucket.get(p.userId) ?? 0) + pts);
+  }
+
+  const leaderFrom = (tally: Map<string, number>): PhaseLeader | null => {
+    if (tally.size === 0) return null;
+    const top = Math.max(...tally.values());
+    const names = [...tally.entries()]
+      .filter(([, v]) => v === top)
+      .map(([userId]) => nameById.get(userId))
+      .filter((n): n is string => Boolean(n))
+      .sort((a, b) => a.localeCompare(b));
+    return {
+      names: names.slice(0, MAX_NAMED),
+      more: Math.max(0, names.length - MAX_NAMED),
+      points: top,
+    };
+  };
+
+  // Standard competition ranking: equal points share a rank.
+  const groupStageRank: Record<string, number> = {};
+  const byGroupPoints = [...groupPoints.entries()].sort((a, b) => b[1] - a[1]);
+  let rank = 0;
+  let prevPoints: number | null = null;
+  byGroupPoints.forEach(([userId, pts], i) => {
+    if (prevPoints === null || pts < prevPoints) {
+      rank = i + 1;
+      prevPoints = pts;
+    }
+    groupStageRank[userId] = rank;
+  });
+
+  const sum = (t: Map<string, number>) =>
+    [...t.values()].reduce((a, b) => a + b, 0);
+
+  // "Everyone got it right/wrong" only means something with a real crowd.
+  const unanimousRight = rated.filter((c) => c.ok === c.n).length;
+  const unanimousWrong = rated.filter((c) => c.ok === 0).length;
+
   // --- the viewer's own tournament ---
   const personal = input.viewerId
     ? computePersonal({
@@ -269,6 +338,12 @@ export function computeFinale(input: FinaleInput): FinaleReport | null {
     hardest,
     banker,
     bestKnockout,
+    groupStageLeader: leaderFrom(groupPoints),
+    knockoutLeader: leaderFrom(koPoints),
+    groupStageRank,
+    unanimousRight,
+    unanimousWrong,
+    totalPoints: sum(groupPoints) + sum(koPoints),
     personal,
   };
 }
